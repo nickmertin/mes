@@ -51,8 +51,15 @@ pub(super) fn derive(input: Input) -> TokenStream {
 
         type PMeasure<#r_ident: #real> = ([#r_ident; #len_m1], #(#option<<#types as Measurable>::PMeasure<#r_ident>>),*);
 
+        fn zero<#r_ident: #real>() -> Self::Measure<#r_ident>
+        where
+            Self::Measure<#r_ident>: #sized,
+        {
+            (#(<#types as Measurable>::zero(),)*)
+        }
+
         fn total<R: #real>(m: &Self::Measure<#r_ident>) -> #r_ident {
-            (#(<#types as Measurable>::total(&m.#indices))+*)
+            #(<#types as Measurable>::total(&m.#indices))+*
         }
 
         fn normalize<#r_ident: #real>(m: &Self::Measure<#r_ident>) -> #option<Self::PMeasure<#r_ident>>

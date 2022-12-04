@@ -8,6 +8,11 @@ pub trait Measurable {
     /// Describes an arbitrary probability measure over [`Self`].
     type PMeasure<R: Real>: ?Sized;
 
+    /// Produces the zero measure.
+    fn zero<R: Real>() -> Self::Measure<R>
+    where
+        Self::Measure<R>: Sized;
+
     /// Computes the total measure.
     fn total<R: Real>(m: &Self::Measure<R>) -> R;
 
@@ -31,6 +36,14 @@ impl Measurable for () {
     type Measure<R: Real> = R;
 
     type PMeasure<R: Real> = ();
+
+    #[inline]
+    fn zero<R: Real>() -> Self::Measure<R>
+    where
+        Self::Measure<R>: Sized,
+    {
+        R::zero()
+    }
 
     #[inline]
     fn total<R: Real>(m: &Self::Measure<R>) -> R {
@@ -62,6 +75,14 @@ impl Measurable for bool {
     type PMeasure<R: Real> = R;
 
     #[inline]
+    fn zero<R: Real>() -> Self::Measure<R>
+    where
+        Self::Measure<R>: Sized,
+    {
+        [R::zero(), R::zero()]
+    }
+
+    #[inline]
     fn total<R: Real>(m: &Self::Measure<R>) -> R {
         m[0] + m[1]
     }
@@ -87,6 +108,14 @@ impl<Re: Real> Measurable for Re {
     type Measure<R: Real> = (R, dyn RealDistribution<R = R>);
 
     type PMeasure<R: Real> = dyn RealDistribution<R = R>;
+
+    #[inline]
+    fn zero<R: Real>() -> Self::Measure<R>
+    where
+        Self::Measure<R>: Sized,
+    {
+        unreachable!()
+    }
 
     #[inline]
     fn total<R: Real>(m: &Self::Measure<R>) -> R {
