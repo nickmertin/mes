@@ -21,12 +21,18 @@ pub struct VariantField {
 
 pub(super) fn derive(input: Input) -> TokenStream {
     let r_ident = input.r_ident();
+    let measurable = quote!(::mes::Measurable);
+    let real = quote!(::mes::real::Real);
+    let sized = quote!(::core::marker::Sized);
+    let option = quote!(::core::option::Option);
+    let fn_once = quote!(::core::ops::FnOnce);
+
     let Input {
         ident,
         data,
         generics,
     } = input;
-    let where_clause = &generics.where_clause;
+    let where_clause = generics.where_clause.as_ref();
     let generic_args = as_arguments(&generics);
 
     eprintln!("{}", generic_args);
@@ -34,32 +40,25 @@ pub(super) fn derive(input: Input) -> TokenStream {
     let data = data.take_enum().unwrap();
     let len = data.len();
 
-    if len == 0 {
-        return empty(r_ident);
-    }
+    let body = if len == 0 {
+        empty(r_ident)
+    } else {
+        let len_m1 = len - 1;
 
-    let len_m1 = len - 1;
-    let measurable = quote!(::mes::Measurable);
-    let real = quote!(::mes::real::Real);
-    let sized = quote!(::core::marker::Sized);
-    let option = quote!(::core::option::Option);
-    let fn_once = quote!(::core::ops::FnOnce);
+        let types = data
+            .into_iter()
+            .map(|v| {
+                if let Some(VariantField { ty }) = v.fields.into_iter().next() {
+                    quote!(#ty)
+                } else {
+                    quote!(())
+                }
+            })
+            .collect_vec();
 
-    let types = data
-        .into_iter()
-        .map(|v| {
-            if let Some(VariantField { ty }) = v.fields.into_iter().next() {
-                quote!(#ty)
-            } else {
-                quote!(())
-            }
-        })
-        .collect_vec();
+        let indices = (0..len).into_iter().map(Index::from).collect_vec();
 
-    let indices = (0..len).into_iter().map(Index::from).collect_vec();
-
-    quote! {
-        impl #generics #measurable for #ident #generic_args #where_clause {
+        quote! {
             type Measure<#r_ident: #real> = (#(<#types as Measurable>::Measure<#r_ident>,)*);
 
             type PMeasure<#r_ident: #real> = ([#r_ident; #len_m1], #(#option<<#types as Measurable>::PMeasure<#r_ident>>),*);
@@ -71,7 +70,7 @@ pub(super) fn derive(input: Input) -> TokenStream {
                 (#(<#types as Measurable>::zero(),)*)
             }
 
-            fn total<R: #real>(m: &Self::Measure<#r_ident>) -> #r_ident {
+            fn total<#r_ident: #real>(m: &Self::Measure<#r_ident>) -> #r_ident {
                 #(<#types as Measurable>::total(&m.#indices))+*
             }
 
@@ -91,10 +90,18 @@ pub(super) fn derive(input: Input) -> TokenStream {
                 #option::Some(f(&<Self as Measurable>::normalize(m)?))
             }
         }
+    };
+
+    quote! {
+        #[automatically_derived]
+        impl #generics #measurable for #ident #generic_args #where_clause {
+            #body
+        }
     }
 }
 
 fn empty(r_ident: Ident) -> TokenStream {
+    let zero = quote!(::mes::num_traits::Zero);
     let real = quote!(::mes::real::Real);
     let sized = quote!(::core::marker::Sized);
     let option = quote!(::core::option::Option);
@@ -106,6 +113,19 @@ fn empty(r_ident: Ident) -> TokenStream {
         type PMeasure<#r_ident: #real> = ::mes::void::Void;
 
         #[inline]
+        fn zero<#r_ident: #real>() -> Self::Measure<#r_ident>
+        where
+            Self::Measure<#r_ident>: #sized,
+        {
+            ()
+        }
+
+        #[inline]
+        fn total<#r_ident: #real>(_m: &Self::Measure<#r_ident>) -> #r_ident {
+            <#r_ident as #zero>::zero()
+        }
+
+        #[inline]
         fn normalize<#r_ident: #real>(_m: &Self::Measure<#r_ident>) -> #option<Self::PMeasure<#r_ident>>
         where
             Self::PMeasure<#r_ident>: #sized,
@@ -115,8 +135,8 @@ fn empty(r_ident: Ident) -> TokenStream {
 
         #[inline]
         fn with_normalized<#r_ident: #real, T>(
-            m: &Self::Measure<#r_ident>,
-            f: impl for<'a> #fn_once(&'a Self::PMeasure<#r_ident>) -> T,
+            _m: &Self::Measure<#r_ident>,
+            _f: impl for<'a> #fn_once(&'a Self::PMeasure<#r_ident>) -> T,
         ) -> Option<T> {
             #option::None
         }

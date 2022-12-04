@@ -20,3 +20,6 @@ pub use mes_derive::Measurable;
 
 #[doc(hidden)]
 pub use void;
+
+#[doc(hidden)]
+pub use num_traits;
