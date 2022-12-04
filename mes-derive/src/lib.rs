@@ -5,6 +5,7 @@
 use proc_macro::TokenStream;
 
 mod measurable;
+mod util;
 
 #[proc_macro_derive(Measurable)]
 pub fn derive_measurable(input: TokenStream) -> TokenStream {

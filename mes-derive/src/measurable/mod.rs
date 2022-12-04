@@ -4,7 +4,6 @@ use darling::{
 };
 use proc_macro::TokenStream;
 use proc_macro2::Span;
-use quote::quote;
 use syn::{parse_macro_input, Generics, Ident};
 
 mod for_enum;
@@ -36,13 +35,5 @@ impl Input {
 
 pub fn derive(input: TokenStream) -> TokenStream {
     let input = Input::from_derive_input(&(parse_macro_input!(input))).unwrap();
-    let Input {
-        ident, generics, ..
-    } = input.clone();
-    let body = for_enum::derive(input);
-
-    quote! {
-        impl Measurable #generics for #ident { #body }
-    }
-    .into()
+    for_enum::derive(input).into()
 }
