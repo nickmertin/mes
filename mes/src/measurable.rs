@@ -104,36 +104,36 @@ impl Measurable for bool {
     }
 }
 
-impl<Re: Real> Measurable for Re {
-    type Measure<R: Real> = (R, dyn RealDistribution<R = R>);
+// impl<Re: Real> Measurable for Re {
+//     type Measure<R: Real> = (R, dyn RealDistribution<R = R>);
 
-    type PMeasure<R: Real> = dyn RealDistribution<R = R>;
+//     type PMeasure<R: Real> = dyn RealDistribution<R = R>;
 
-    #[inline]
-    fn zero<R: Real>() -> Self::Measure<R>
-    where
-        Self::Measure<R>: Sized,
-    {
-        unreachable!()
-    }
+//     #[inline]
+//     fn zero<R: Real>() -> Self::Measure<R>
+//     where
+//         Self::Measure<R>: Sized,
+//     {
+//         unreachable!()
+//     }
 
-    #[inline]
-    fn total<R: Real>(m: &Self::Measure<R>) -> R {
-        m.0
-    }
+//     #[inline]
+//     fn total<R: Real>(m: &Self::Measure<R>) -> R {
+//         m.0
+//     }
 
-    fn normalize<R: Real>(_m: &Self::Measure<R>) -> Option<Self::PMeasure<R>>
-    where
-        Self::PMeasure<R>: Sized,
-    {
-        unreachable!()
-    }
+//     fn normalize<R: Real>(_m: &Self::Measure<R>) -> Option<Self::PMeasure<R>>
+//     where
+//         Self::PMeasure<R>: Sized,
+//     {
+//         unreachable!()
+//     }
 
-    #[inline]
-    fn with_normalized<R: Real, T>(
-        m: &Self::Measure<R>,
-        f: impl for<'a> FnOnce(&'a Self::PMeasure<R>) -> T,
-    ) -> Option<T> {
-        Some(f(&m.1))
-    }
-}
+//     #[inline]
+//     fn with_normalized<R: Real, T>(
+//         m: &Self::Measure<R>,
+//         f: impl for<'a> FnOnce(&'a Self::PMeasure<R>) -> T,
+//     ) -> Option<T> {
+//         Some(f(&m.1))
+//     }
+// }

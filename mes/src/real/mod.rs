@@ -1,9 +1,18 @@
 //! Facilities for working with real numbers.
 
-use num_traits::Num;
+use cfg_if::cfg_if;
+use core::{
+    fmt::{Debug, Display},
+    iter::Sum,
+};
+use nalgebra::RealField;
+use num_traits::NumAssign;
+
+pub mod dirac;
+pub mod gaussian;
 
 /// Describes a type which represents a real number.
-pub trait Real: Copy + PartialOrd + Num {
+pub trait Real: Debug + Display + Copy + PartialOrd + NumAssign + 'static {
     /// Normalizes the list of numbers.
     fn normalize(nums: &mut [Self]) -> Option<()>;
 
@@ -15,11 +24,11 @@ pub trait Real: Copy + PartialOrd + Num {
     }
 }
 
-macro_rules! impl_real {
-    ($type:ty) => {
-        impl Real for $type {
+cfg_if! {
+    if #[cfg(feature = "vector")] {
+        impl<F: RealField + Copy + PartialOrd + Sum<F>> Real for F {
             fn normalize(nums: &mut [Self]) -> Option<()> {
-                let sum: Self = nums.iter().sum();
+                let sum: Self = nums.iter().map(|x| *x).sum();
                 let factor = sum.recip();
                 if !factor.is_finite() {
                     return None;
@@ -29,11 +38,28 @@ macro_rules! impl_real {
                 Some(())
             }
         }
-    };
-}
+    } else {
+        macro_rules! impl_real {
+            ($type:ty) => {
+                impl Real for $type {
+                    fn normalize(nums: &mut [Self]) -> Option<()> {
+                        let sum: Self = nums.iter().sum();
+                        let factor = sum.recip();
+                        if !factor.is_finite() {
+                            return None;
+                        }
 
-impl_real!(f32);
-impl_real!(f64);
+                        nums.iter_mut().for_each(|x| *x *= factor);
+                        Some(())
+                    }
+                }
+            };
+        }
+
+        impl_real!(f32);
+        impl_real!(f64);
+    }
+}
 
 // impl<R: Copy + PartialOrd + NumAssign + Float + for<'a> Sum<&'a Self>> Real
 // for R {     fn normalize(nums: &mut [Self]) -> Option<()> {

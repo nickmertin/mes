@@ -10,6 +10,8 @@ extern crate alloc;
 pub mod real;
 
 mod measurable;
+pub mod measure;
+pub mod vector;
 
 pub use measurable::*;
 
