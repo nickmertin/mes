@@ -7,8 +7,8 @@ edition = "2021"
 default = ["alloc", "derive"]
 alloc = []
 derive = ["dep:mes-derive"]
-libm = ["num-traits/libm"]
-std = ["num-traits/std", "alloc"]
+libm = ["num-traits/libm", "simba/libm"]
+std = ["num-traits/std", "simba/std", "alloc"]
 vector = ["dep:nalgebra"]
 
 [dependencies]
@@ -17,6 +17,7 @@ derive_more = "0.99"
 mes-derive = { version = "0.1.0", path = "../mes-derive", optional = true }
 nalgebra = { version = "0.31.4", default-features = false, features = ["matrixmultiply"], optional = true }
 num-traits = { version = "0.2.15", default-features = false }
+simba = { version = "0.7.3", default-features = false }
 void = "1.0.2"
 
 [package.metadata.docs.rs]

@@ -5,7 +5,6 @@
 
 use core::ops::{Mul, MulAssign};
 use derive_more::{Add, AddAssign};
-use num_traits::{float::Float, FloatConst};
 
 use crate::measure::Measure;
 
@@ -14,15 +13,15 @@ use super::{dirac::Dirac, Real};
 #[derive(Debug, Clone, Copy, PartialEq)]
 /// A (univariate) weighted Gaussian measure.
 pub struct Gaussian<R: Real> {
-    distribution: PGaussian<R>,
-    weight: R,
+    pub distribution: PGaussian<R>,
+    pub weight: R,
 }
 
 /// A (univariate) Gaussian distribution.
 #[derive(Debug, Clone, Copy, PartialEq, Add, AddAssign)]
 pub struct PGaussian<R: Real> {
-    mean: R,
-    variance: R,
+    pub mean: R,
+    pub variance: R,
 }
 
 impl<R: Real> From<Dirac<R>> for Gaussian<R> {
@@ -63,7 +62,7 @@ impl<R: Real> MulAssign<R> for Gaussian<R> {
     }
 }
 
-impl<R: Real + Float + FloatConst> Measure for Gaussian<R> {
+impl<R: Real> Measure for Gaussian<R> {
     type R = R;
 
     type Space = R;
@@ -79,7 +78,9 @@ impl<R: Real + Float + FloatConst> Measure for Gaussian<R> {
 
         let PGaussian { mean, variance } = self.distribution;
         let offset = *value - mean;
-        (variance * R::TAU()).sqrt().recip() * (-half / variance * offset * offset).exp()
+        self.weight
+            * (variance * R::two_pi()).sqrt().recip()
+            * (-half / variance * offset * offset).exp()
     }
 
     fn normalize(&self) -> Option<Self::PMeasure> {
