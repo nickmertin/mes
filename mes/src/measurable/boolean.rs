@@ -2,6 +2,8 @@
 
 use core::ops::Not;
 
+use with_locals::with;
+
 use crate::{measure::Measure, sigma::SigmaAlgebra};
 
 use super::{Measurable, MeasurableFn};
@@ -12,8 +14,8 @@ pub struct BoolSubset {
     pub includes_false: bool,
 }
 
-pub struct BoolFunction<'a, T: Measurable + ?Sized> {
-    pub true_partition: T::Subset<'a>,
+pub struct BoolFunction<T: Measurable + ?Sized> {
+    pub true_partition: T::Subset,
 }
 
 impl Not for BoolSubset {
@@ -27,42 +29,45 @@ impl Not for BoolSubset {
     }
 }
 
-impl<'a> SigmaAlgebra<'a> for BoolSubset {
+impl SigmaAlgebra for BoolSubset {
     type Space = bool;
 
-    fn with_empty<U>(f: impl FnOnce(&'a Self) -> U) -> U {
-        f(&Self {
+    #[with]
+    fn empty() -> &'ref Self {
+        &Self {
             includes_true: false,
             includes_false: false,
-        })
+        }
     }
 
-    fn with_full<U>(f: impl FnOnce(&'a Self) -> U) -> U {
-        f(&Self {
+    #[with]
+    fn full() -> &'ref Self {
+        &Self {
             includes_true: true,
             includes_false: true,
-        })
+        }
     }
 
     fn is_empty(&self) -> bool {
         !self.includes_true && !self.includes_false
     }
 
-    fn with_inversion<U>(&'a self, f: impl FnOnce(&Self) -> U) -> U {
-        f(&!*self)
+    #[with('local)]
+    fn inversion(&self) -> &'local Self {
+        &!*self
     }
 }
 
-impl<'a, T: Measurable + ?Sized + 'a> MeasurableFn<'a> for BoolFunction<'a, T> {
+impl<T: Measurable + ?Sized> MeasurableFn for BoolFunction<T> {
     type Domain = T;
 
     type Codomain = bool;
 
-    fn with_preimage<'b: 'a, 'c, U>(
-        f: &'a Self,
-        s: &'c <Self::Codomain as Measurable>::Subset<'b>,
-        g: impl FnOnce(&<Self::Domain as Measurable>::Subset<'c>) -> U + 'c,
-    ) -> U {
+    #[with]
+    fn preimage(
+        f: &Self,
+        s: &<Self::Codomain as Measurable>::Subset,
+    ) -> &'ref <Self::Domain as Measurable>::Subset {
         // match (s.includes_true, s.includes_false) {
         //     (true, true) => T::Subset::with_full(g),
         //     (true, false) => g(&f.true_partition),
@@ -74,7 +79,7 @@ impl<'a, T: Measurable + ?Sized + 'a> MeasurableFn<'a> for BoolFunction<'a, T> {
 }
 
 impl Measurable for bool {
-    type Subset<'a> = BoolSubset;
+    type Subset = BoolSubset;
 
     // type Function<'a, T: Measurable + ?Sized + 'a> = BoolFunction<'a, T>;
 

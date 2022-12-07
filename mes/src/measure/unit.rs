@@ -1,4 +1,5 @@
 use derive_more::{Add, AddAssign, Mul, MulAssign};
+use with_locals::with;
 
 use crate::{measurable::Measurable, real::Real};
 
@@ -18,7 +19,7 @@ impl<R: Real> From<UnitPMeasure> for UnitMeasure<R> {
     }
 }
 
-impl<'a, R: Real> Measure<'a> for UnitMeasure<R> {
+impl<R: Real> Measure for UnitMeasure<R> {
     type R = R;
 
     type Space = ();
@@ -29,12 +30,9 @@ impl<'a, R: Real> Measure<'a> for UnitMeasure<R> {
 
     type PMeasure = UnitPMeasure;
 
-    fn with_measure<'subset: 'a, 'b, U>(
-        &'a self,
-        domain: &'b <Self::Space as Measurable>::Subset<'subset>,
-        f: impl FnOnce(&Self::Measurement) -> U + 'b,
-    ) -> U {
-        f(&if domain.full { self.weight } else { R::zero() })
+    #[with]
+    fn measure(&self, domain: &<Self::Space as Measurable>::Subset) -> &'ref Self::Measurement {
+        &if domain.full { self.weight } else { R::zero() }
     }
 
     fn measure_at(&self, _value: &Self::Space) -> Self::PointMeasurement {
@@ -47,7 +45,7 @@ impl<'a, R: Real> Measure<'a> for UnitMeasure<R> {
     }
 }
 
-impl<'a, R: Real> DiracMeasure<'a> for UnitMeasure<R> {
+impl<R: Real> DiracMeasure for UnitMeasure<R> {
     fn point(_value: &Self::Space) -> Self {
         Self { weight: R::one() }
     }

@@ -1,3 +1,5 @@
+use with_locals::with;
+
 use crate::{
     measure::Measure,
     real::{Real, RealDistribution},
@@ -10,7 +12,7 @@ pub mod unit;
 /// Describes a data type as a measurable space.
 pub trait Measurable {
     /// The type representing measurable subsets of [`Self`].
-    type Subset<'a>: SigmaAlgebra<'a> + ?Sized + 'a;
+    type Subset: SigmaAlgebra + ?Sized;
 
     // /// The type representing measurable functions from `T` to [`Self`].
     // type Function<'a, T: Measurable + ?Sized + 'a>: ?Sized + 'a;
@@ -57,15 +59,15 @@ pub trait Measurable {
     // ) -> Option<T>;
 }
 
-pub trait MeasurableFn<'a> {
-    type Domain: Measurable + ?Sized + 'a;
-    type Codomain: Measurable + ?Sized + 'a;
+pub trait MeasurableFn {
+    type Domain: Measurable + ?Sized;
+    type Codomain: Measurable + ?Sized;
 
-    fn with_preimage<'b: 'a, 'c, U>(
-        f: &'a Self,
-        s: &'c <Self::Codomain as Measurable>::Subset<'b>,
-        g: impl FnOnce(&<Self::Domain as Measurable>::Subset<'c>) -> U + 'c,
-    ) -> U;
+    #[with]
+    fn preimage(
+        f: &Self,
+        s: &<Self::Codomain as Measurable>::Subset,
+    ) -> &'ref <Self::Domain as Measurable>::Subset;
 }
 
 // impl Measurable for () {

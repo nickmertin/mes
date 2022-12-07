@@ -1,4 +1,5 @@
 use derive_more::{Add, AddAssign, Mul, MulAssign};
+use with_locals::with;
 
 use crate::{measurable::Measurable, real::Real};
 
@@ -39,7 +40,7 @@ impl<R: Real> From<BoolPMeasure<R>> for BoolMeasure<R> {
 //     }
 // }
 
-impl<'a, R: Real> Measure<'a> for BoolMeasure<R> {
+impl<R: Real> Measure for BoolMeasure<R> {
     type R = R;
 
     type Space = bool;
@@ -50,11 +51,8 @@ impl<'a, R: Real> Measure<'a> for BoolMeasure<R> {
 
     type PMeasure = BoolPMeasure<R>;
 
-    fn with_measure<'subset: 'a, 'b, U>(
-        &'a self,
-        domain: &'b <Self::Space as Measurable>::Subset<'subset>,
-        f: impl FnOnce(&Self::Measurement) -> U + 'b,
-    ) -> U {
+    #[with]
+    fn measure(&self, domain: &<Self::Space as Measurable>::Subset) -> &'ref Self::Measurement {
         let mut result = R::zero();
         if domain.includes_true {
             result += self.true_value;
@@ -62,7 +60,7 @@ impl<'a, R: Real> Measure<'a> for BoolMeasure<R> {
         if domain.includes_false {
             result += self.false_value;
         }
-        f(&result)
+        &result
     }
 
     fn measure_at(&self, value: &Self::Space) -> Self::PointMeasurement {
@@ -80,7 +78,7 @@ impl<'a, R: Real> Measure<'a> for BoolMeasure<R> {
     }
 }
 
-impl<'a, R: Real> DiracMeasure<'a> for BoolMeasure<R> {
+impl<R: Real> DiracMeasure for BoolMeasure<R> {
     fn point(value: &Self::Space) -> Self {
         if *value {
             Self {

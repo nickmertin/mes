@@ -1,6 +1,7 @@
 //! Facilities for working with real numbers.
 
 use simba::scalar::RealField;
+use with_locals::with;
 
 use crate::{measurable::Measurable, sigma::SigmaAlgebra};
 
@@ -54,15 +55,11 @@ pub trait RealSubset<R: Real> {
 //     }
 // }
 
-impl<'a, R: Real> SigmaAlgebra<'a> for dyn RealSubset<R> + 'a {
+impl<R: Real> SigmaAlgebra for dyn RealSubset<R> {
     type Space = R;
 
-    fn with_empty<U>(f: impl FnOnce(&'a Self) -> U) -> U {
-        // let core: &RealSubsetCore<[(bool, R)]> = &RealSubsetCore {
-        //     left_unbounded: false,
-        //     points: [],
-        // };
-        // f(core.into())
+    #[with]
+    fn empty() -> &'ref Self {
         struct EmptySubset;
 
         impl<R: Real> RealSubset<R> for EmptySubset {
@@ -75,15 +72,11 @@ impl<'a, R: Real> SigmaAlgebra<'a> for dyn RealSubset<R> + 'a {
             }
         }
 
-        f(&EmptySubset)
+        &EmptySubset
     }
 
-    fn with_full<U>(f: impl FnOnce(&'a Self) -> U) -> U {
-        // let core: &RealSubsetCore<[(bool, R)]> = &RealSubsetCore {
-        //     left_unbounded: true,
-        //     points: [],
-        // };
-        // f(core.into())
+    #[with]
+    fn full() -> &'ref Self {
         struct FullSubset(u8);
 
         impl<R: Real> RealSubset<R> for FullSubset {
@@ -96,15 +89,16 @@ impl<'a, R: Real> SigmaAlgebra<'a> for dyn RealSubset<R> + 'a {
             }
         }
 
-        f(&FullSubset(0))
+        &FullSubset(0)
     }
 
-    fn is_empty(&'a self) -> bool {
+    fn is_empty(&self) -> bool {
         // !self.0.left_unbounded && self.0.points.is_empty()
         self.is_empty()
     }
 
-    fn with_inversion<U>(&'a self, f: impl FnOnce(&Self) -> U) -> U {
+    #[with('local)]
+    fn inversion<'a>(&'a self) -> &'local Self {
         struct InverseSubset<'a, 'b, R>(&'b (dyn RealSubset<R> + 'a));
 
         impl<'a, 'b, R: Real> RealSubset<R> for InverseSubset<'a, 'b, R> {
@@ -117,12 +111,16 @@ impl<'a, R: Real> SigmaAlgebra<'a> for dyn RealSubset<R> + 'a {
             }
         }
 
-        f(&InverseSubset(self))
+        let x: InverseSubset<'a, 'a, R> = InverseSubset(self);
+        // &x
+        todo!()
+
+        // &InverseSubset::<'_, '_, R>(self)
     }
 }
 
 impl<R: Real> Measurable for R {
-    type Subset<'a> = dyn RealSubset<R> + 'a;
+    type Subset = dyn RealSubset<R>;
 
     // type Function<'a, T: Measurable + ?Sized + 'a> = dyn RealFunction<T, R> + 'a;
 

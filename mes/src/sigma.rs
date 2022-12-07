@@ -1,13 +1,18 @@
 //! Provides the [`SigmaAlgebra`] trait.
 
-pub trait SigmaAlgebra<'a>: 'a {
+use with_locals::with;
+
+pub trait SigmaAlgebra {
     type Space;
 
-    fn with_empty<U>(f: impl FnOnce(&'a Self) -> U) -> U;
+    #[with]
+    fn empty() -> &'ref Self;
 
-    fn with_full<U>(f: impl FnOnce(&'a Self) -> U) -> U;
+    #[with]
+    fn full() -> &'ref Self;
 
-    fn is_empty(&'a self) -> bool;
+    fn is_empty(&self) -> bool;
 
-    fn with_inversion<U>(&'a self, f: impl FnOnce(&Self) -> U) -> U;
+    #[with('local)]
+    fn inversion(&self) -> &'local Self;
 }

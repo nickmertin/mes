@@ -20,6 +20,7 @@ num-traits = { version = "0.2.15", default-features = false }
 simba = { version = "0.7.3", default-features = false }
 type-variance = "0.1.0"
 void = "1.0.2"
+with_locals = "0.3.0"
 
 [package.metadata.docs.rs]
 all-features = true

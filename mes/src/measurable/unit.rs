@@ -1,6 +1,7 @@
 //! Implementation of the unit type as a measurable space.
 
 use type_variance::Contravariant;
+use with_locals::with;
 
 use crate::{measure::Measure, sigma::SigmaAlgebra};
 
@@ -12,46 +13,53 @@ pub struct UnitSubset {
 
 pub struct UnitFunction<T: ?Sized>(Contravariant<T>);
 
-impl<'a> SigmaAlgebra<'a> for UnitSubset {
+impl SigmaAlgebra for UnitSubset {
     type Space = ();
 
-    fn with_empty<U>(f: impl FnOnce(&'a Self) -> U) -> U {
-        f(&Self { full: false })
+    #[with]
+    fn empty() -> &'ref Self {
+        &Self { full: false }
     }
 
-    fn with_full<U>(f: impl FnOnce(&'a Self) -> U) -> U {
-        f(&Self { full: true })
+    #[with]
+    fn full() -> &'ref Self {
+        &Self { full: true }
     }
 
     fn is_empty(&self) -> bool {
         !self.full
     }
 
-    fn with_inversion<U>(&'a self, f: impl FnOnce(&Self) -> U) -> U {
-        f(&Self { full: !self.full })
+    #[with('local)]
+    fn inversion(&self) -> &'local Self {
+        &Self { full: !self.full }
     }
 }
 
-impl<'a, T: Measurable + ?Sized + 'a> MeasurableFn<'a> for UnitFunction<T> {
+impl<T: Measurable + ?Sized> MeasurableFn for UnitFunction<T> {
     type Domain = T;
 
     type Codomain = ();
 
-    fn with_preimage<'b: 'a, 'c, U>(
-        _f: &'a Self,
-        s: &'c <Self::Codomain as Measurable>::Subset<'b>,
-        g: impl FnOnce(&<Self::Domain as Measurable>::Subset<'c>) -> U + 'c,
-    ) -> U {
+    #[with]
+    fn preimage(
+        _f: &Self,
+        s: &<Self::Codomain as Measurable>::Subset,
+    ) -> &'ref <Self::Domain as Measurable>::Subset {
         if s.full {
-            T::Subset::with_full(g)
+            #[with]
+            let x = T::Subset::full();
+            x
         } else {
-            T::Subset::with_empty(g)
+            #[with]
+            let x = T::Subset::empty();
+            x
         }
     }
 }
 
 impl Measurable for () {
-    type Subset<'a> = UnitSubset;
+    type Subset = UnitSubset;
 
     // type Function<'a, T: Measurable + ?Sized + 'a> = UnitFunction;
 
