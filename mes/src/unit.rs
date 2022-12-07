@@ -1,11 +1,13 @@
 //! Implementation of the unit type as a measurable space.
 
+use derive_more::{Add, AddAssign, Mul, MulAssign};
 use type_variance::Contravariant;
 use with_locals::with;
 
-use crate::sigma::SigmaAlgebra;
-
-use super::{Measurable, MeasurableFn, PointMeasurable};
+use crate::{
+    real::Real, DiracMeasure, Measurable, MeasurableFn, Measure, PointMeasurable, PointMeasure,
+    SigmaAlgebra,
+};
 
 pub struct UnitSubset {
     pub full: bool,
@@ -67,28 +69,6 @@ impl Measurable for () {
     fn subset_upcast<'a, 'b: 'a>(s: &'a Self::Subset<'b>) -> &'a Self::Subset<'a> {
         s
     }
-
-    // type Function<'a, T: Measurable + ?Sized + 'a> = UnitFunction;
-
-    // fn with_preimage<'a, T: Measurable + ?Sized + 'a, U>(
-    //     _f: &'a Self::Function<'a, T>,
-    //     s: &'a Self::Subset<'a>,
-    //     g: impl FnOnce(&'a T::Subset<'a>) -> U,
-    // ) -> U {
-    //     if s.0 {
-    //         T::Subset::with_full(g)
-    //     } else {
-    //         T::Subset::with_empty(g)
-    //     }
-    // }
-
-    // fn integrate<'a, T: Measurable + ?Sized, M: Measure<Space = Self> + ?Sized>(
-    //     domain: &'a T::Subset,
-    //     f: &'a Self::Function<T>,
-    //     m: &'a M,
-    // ) -> M::Measurement<'a> {
-    //     m.measure(&UnitSubset(!domain.is_empty()))
-    // }
 }
 
 impl PointMeasurable for () {
@@ -97,5 +77,60 @@ impl PointMeasurable for () {
         #[with]
         let x = Self::Subset::full();
         x
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, PartialOrd, Add, AddAssign, Mul, MulAssign)]
+struct UnitMeasure<R: Real> {
+    weight: R,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+struct UnitPMeasure;
+
+impl<R: Real> From<UnitPMeasure> for UnitMeasure<R> {
+    fn from(_: UnitPMeasure) -> Self {
+        Self { weight: R::one() }
+    }
+}
+
+impl<'subset, R: Real> Measure<'subset> for UnitMeasure<R> {
+    type R = R;
+
+    type Space = ();
+
+    type Measurement = R;
+
+    type PMeasure = UnitPMeasure;
+
+    #[with]
+    fn measure<'a>(
+        &'a self,
+        domain: &'a <Self::Space as Measurable>::Subset<'a>,
+    ) -> &'ref Self::Measurement
+    where
+        'subset: 'a,
+    {
+        &if domain.full { self.weight } else { R::zero() }
+    }
+
+    fn normalize(&self) -> Option<Self::PMeasure> {
+        R::normalize_static([self.weight])?;
+        Some(UnitPMeasure)
+    }
+}
+
+impl<'subset, R: Real> PointMeasure<'subset> for UnitMeasure<R> {
+    type PointMeasurement = R;
+
+    #[with]
+    fn measure_at(&self, _value: &Self::Space) -> &'ref Self::PointMeasurement {
+        &self.weight
+    }
+}
+
+impl<'subset, R: Real> DiracMeasure<'subset> for UnitMeasure<R> {
+    fn point(_value: &Self::Space) -> Self {
+        Self { weight: R::one() }
     }
 }

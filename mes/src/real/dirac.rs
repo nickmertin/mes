@@ -4,10 +4,7 @@ use core::ops::{Mul, MulAssign};
 use num_traits::float::FloatCore;
 use with_locals::with;
 
-use crate::{
-    measurable::Measurable,
-    measure::{DiracMeasure, Measure, PointMeasure},
-};
+use crate::{DiracMeasure, Measurable, Measure, PointMeasure};
 
 use super::Real;
 

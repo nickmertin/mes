@@ -3,7 +3,7 @@
 use simba::scalar::RealField;
 use with_locals::with;
 
-use crate::{measurable::Measurable, sigma::SigmaAlgebra};
+use crate::{Measurable, SigmaAlgebra};
 
 pub mod dirac;
 // pub mod gaussian;
@@ -135,28 +135,15 @@ impl<R: Real> Measurable for R {
     fn subset_upcast<'a, 'b: 'a>(s: &'a Self::Subset<'b>) -> &'a Self::Subset<'a> {
         s
     }
-
-    // type Function<'a, T: Measurable + ?Sized + 'a> = dyn RealFunction<T, R> + 'a;
-
-    // fn with_preimage<'a, T: Measurable + ?Sized + 'a, U>(
-    //     f: &Self::Function<'a, T>,
-    //     s: &Self::Subset<'a>,
-    //     g: impl FnOnce(&'a T::Subset<'a>) -> U,
-    // ) -> U {
-    //     todo!()
-    // }
 }
 
-// impl<F: RealField + Copy + Sum<F>> Real for F {
-//     fn normalize(nums: &mut [Self]) -> Option<()> {
-//         let sum: Self = nums.iter().map(|x| *x).sum();
-//         let factor = sum.recip();
-//         if !factor.is_finite() {
-//             return None;
+// impl<R: Real> PointMeasurable for R {
+//     #[with]
+//     fn point_subset(&self) -> &'ref Self::Subset<'_> {
+//         &BoolSubset {
+//             includes_true: *self,
+//             includes_false: !*self,
 //         }
-
-//         nums.iter_mut().for_each(|x| *x *= factor);
-//         Some(())
 //     }
 // }
 

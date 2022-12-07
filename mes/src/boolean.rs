@@ -1,11 +1,13 @@
-//! Implementation of the unit type as a measurable space.
+//! Implementation of [`bool`] as a measurable space.
 
 use core::ops::Not;
+use derive_more::{Add, AddAssign, Mul, MulAssign};
 use with_locals::with;
 
-use crate::sigma::SigmaAlgebra;
-
-use super::{Measurable, MeasurableFn, PointMeasurable};
+use crate::{
+    real::Real, DiracMeasure, Measurable, MeasurableFn, Measure, PointMeasurable, PointMeasure,
+    SigmaAlgebra,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BoolSubset {
@@ -97,30 +99,6 @@ impl Measurable for bool {
     fn subset_upcast<'a, 'b: 'a>(s: &'a Self::Subset<'b>) -> &'a Self::Subset<'a> {
         s
     }
-
-    // type Function<'a, T: Measurable + ?Sized + 'a> = BoolFunction<'a, T>;
-
-    // fn with_preimage<'a, T: Measurable + ?Sized + 'a, U>(
-    //     f: &'a Self::Function<'a, T>,
-    //     s: &'a Self::Subset<'a>,
-    //     g: impl FnOnce(&'a T::Subset<'a>) -> U,
-    // ) -> U {
-    //     match (s.includes_true, s.includes_false) {
-    //         (true, true) => T::Subset::with_full(g),
-    //         (true, false) => g(&f.true_partition),
-    //         (false, true) => f.true_partition.with_inversion(g),
-    //         (false, false) => T::Subset::with_empty(g),
-    //     }
-    // }
-
-    // fn integrate<'a, T: Measurable + ?Sized, M: Measure<Space = Self> + ?Sized>(
-    //     domain: &'a T::Subset,
-    //     f: &'a Self::Function<T>,
-    //     m: &'a M,
-    // ) -> M::Measurement<'a> {
-    //     // m.measure(&BoolSubset(!domain.is_empty()))
-    //     todo!()
-    // }
 }
 
 impl PointMeasurable for bool {
@@ -129,6 +107,87 @@ impl PointMeasurable for bool {
         &BoolSubset {
             includes_true: *self,
             includes_false: !*self,
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Add, AddAssign, Mul, MulAssign)]
+struct BoolMeasure<R: Real> {
+    true_value: R,
+    false_value: R,
+}
+
+#[derive(Clone, Copy, PartialEq, PartialOrd)]
+struct BoolPMeasure<R: Real>(R);
+
+impl<R: Real> From<BoolPMeasure<R>> for BoolMeasure<R> {
+    fn from(m: BoolPMeasure<R>) -> Self {
+        Self {
+            true_value: m.0,
+            false_value: R::one() - m.0,
+        }
+    }
+}
+
+impl<'subset, R: Real> Measure<'subset> for BoolMeasure<R> {
+    type R = R;
+
+    type Space = bool;
+
+    type Measurement = R;
+
+    type PMeasure = BoolPMeasure<R>;
+
+    #[with]
+    fn measure<'a>(
+        &'a self,
+        domain: &'a <Self::Space as Measurable>::Subset<'a>,
+    ) -> &'ref Self::Measurement
+    where
+        'subset: 'a,
+    {
+        let mut result = R::zero();
+        if domain.includes_true {
+            result += self.true_value;
+        }
+        if domain.includes_false {
+            result += self.false_value;
+        }
+        &result
+    }
+
+    fn normalize(&self) -> Option<Self::PMeasure> {
+        Some(BoolPMeasure(
+            R::normalize_static([self.true_value, self.false_value])?[0],
+        ))
+    }
+}
+
+impl<'subset, R: Real> PointMeasure<'subset> for BoolMeasure<R> {
+    type PointMeasurement = R;
+
+    #[with]
+    fn measure_at(&self, value: &Self::Space) -> &'ref Self::PointMeasurement {
+        if *value {
+            &self.true_value
+        } else {
+            &self.false_value
+        }
+    }
+}
+
+impl<'subset, R: Real> DiracMeasure<'subset> for BoolMeasure<R> {
+    fn point(value: &Self::Space) -> Self {
+        if *value {
+            Self {
+                true_value: R::one(),
+                false_value: R::zero(),
+            }
+        } else {
+            Self {
+                true_value: R::zero(),
+                false_value: R::one(),
+            }
         }
     }
 }

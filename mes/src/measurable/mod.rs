@@ -1,9 +1,10 @@
 use with_locals::with;
 
-use crate::sigma::SigmaAlgebra;
+mod measure;
+mod sigma;
 
-pub mod boolean;
-pub mod unit;
+pub use measure::*;
+pub use sigma::*;
 
 /// Describes a data type as a measurable space.
 pub trait Measurable {

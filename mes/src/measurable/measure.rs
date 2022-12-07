@@ -1,5 +1,3 @@
-//! Measure trait.
-
 use core::ops::{Mul, MulAssign};
 use with_locals::with;
 
@@ -7,9 +5,6 @@ use crate::{
     measurable::{Measurable, MeasurableFn, PointMeasurable},
     real::Real,
 };
-
-pub mod boolean;
-pub mod unit;
 
 pub trait Measure<'subset>:
     From<Self::PMeasure> + Mul<Self::R, Output = Self> + MulAssign<Self::R>
@@ -172,25 +167,3 @@ pub fn compose<'a, F: MeasurableFn<'a> + ?Sized, M: Measure<'a, Space = F::Domai
 ) -> CompositeMeasure<'a, F, M> {
     CompositeMeasure { function, measure }
 }
-
-// pub trait RecursiveMeasure: Measure {
-//     type RMeasure: RecursiveMeasure<R = Self::R, Space = Self> +
-// From<Self::RPMeasure>;
-
-//     type RPMeasure: RecursiveMeasure<R = Self::R, Space = Self::PMeasure>;
-// }
-
-// pub trait RecursiveMeasureExt: RecursiveMeasure {
-//     fn join(&self) -> Self::Space
-//     where
-//         Self::Space: RecursiveMeasure<RMeasure = Self>;
-// }
-
-// impl<M: RecursiveMeasure> RecursiveMeasureExt for M {
-//     fn join(&self) -> Self::Space
-//     where
-//         Self::Space: RecursiveMeasure<RMeasure = Self>,
-//     {
-//         todo!()
-//     }
-// }
