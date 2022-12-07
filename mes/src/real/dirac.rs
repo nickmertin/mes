@@ -47,7 +47,7 @@ impl<R: Real> Mul<R> for Dirac<R> {
 
 impl<R: Real> MulAssign<R> for Dirac<R> {
     fn mul_assign(&mut self, rhs: R) {
-        self.weight *= rhs
+        self.weight *= rhs;
     }
 }
 

@@ -1,6 +1,6 @@
 //! Facilities for working with real numbers.
 
-use simba::scalar::RealField;
+use num_traits::{float::FloatCore, NumAssign};
 use with_locals::with;
 
 use crate::{Measurable, SigmaAlgebra};
@@ -9,7 +9,7 @@ pub mod dirac;
 // pub mod gaussian;
 
 /// Describes a type which represents a real number.
-pub trait Real: RealField + Copy + 'static {
+pub trait Real: FloatCore + NumAssign + Copy + 'static {
     /// Normalizes the list of numbers.
     fn normalize(nums: &mut [Self]) -> Option<()>;
 
@@ -52,14 +52,6 @@ pub trait RealSubset<R: Real> {
     /// Checks whether the subset contains the given value.
     fn contains(&self, value: &R) -> bool;
 }
-
-// pub trait RealFunction<T: Measurable + ?Sized, R: Real> {}
-
-// impl<'a, R: Real> From<&'a RealSubsetCore<[(bool, R)]>> for &'a RealSubset<R>
-// {     fn from(core: &'a RealSubsetCore<[(bool, R)]>) -> Self {
-//         unsafe { &*(core as *const _ as *const Self) }
-//     }
-// }
 
 impl<'a, R: Real> SigmaAlgebra<'a> for dyn RealSubset<R> + 'a {
     type Space = R;
