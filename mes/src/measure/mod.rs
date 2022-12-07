@@ -1,10 +1,6 @@
 //! Measure trait.
 
-use core::{
-    marker::PhantomData,
-    ops::{Mul, MulAssign},
-};
-
+use core::ops::{Mul, MulAssign};
 use with_locals::with;
 
 use crate::{
@@ -24,8 +20,6 @@ pub trait Measure<'subset>:
 
     type Measurement;
 
-    type PointMeasurement;
-
     type PMeasure;
 
     #[with]
@@ -36,9 +30,14 @@ pub trait Measure<'subset>:
     where
         'subset: 'a;
 
-    fn measure_at(&self, value: &Self::Space) -> Self::PointMeasurement;
-
     fn normalize(&self) -> Option<Self::PMeasure>;
+}
+
+pub trait PointMeasure<'subset>: Measure<'subset> {
+    type PointMeasurement;
+
+    #[with]
+    fn measure_at(&self, value: &Self::Space) -> &'ref Self::PointMeasurement;
 }
 
 pub trait DiracMeasure<'subset>: Measure<'subset> {
@@ -108,8 +107,6 @@ impl<'subset, F: MeasurableFn<'subset> + ?Sized, M: Measure<'subset, Space = F::
 
     type Measurement = M::Measurement;
 
-    type PointMeasurement = M::PointMeasurement;
-
     type PMeasure = CompositePMeasure<'subset, F, M>;
 
     #[with]
@@ -141,15 +138,22 @@ impl<'subset, F: MeasurableFn<'subset> + ?Sized, M: Measure<'subset, Space = F::
         // todo!()
     }
 
-    fn measure_at(&self, value: &Self::Space) -> Self::PointMeasurement {
-        todo!()
-    }
-
     fn normalize(&self) -> Option<Self::PMeasure> {
         Some(CompositePMeasure {
             function: self.function,
             measure: self.measure.normalize()?,
         })
+    }
+}
+
+impl<'subset, F: MeasurableFn<'subset> + ?Sized, M: PointMeasure<'subset, Space = F::Domain>>
+    PointMeasure<'subset> for CompositeMeasure<'subset, F, M>
+{
+    type PointMeasurement = M::PointMeasurement;
+
+    #[with]
+    fn measure_at(&self, value: &Self::Space) -> &'ref Self::PointMeasurement {
+        todo!()
     }
 }
 

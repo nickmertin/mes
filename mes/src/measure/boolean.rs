@@ -3,7 +3,7 @@ use with_locals::with;
 
 use crate::{measurable::Measurable, real::Real};
 
-use super::{DiracMeasure, Measure};
+use super::{DiracMeasure, Measure, PointMeasure};
 
 #[derive(Clone, Copy, PartialEq, Add, AddAssign, Mul, MulAssign)]
 struct BoolMeasure<R: Real> {
@@ -47,8 +47,6 @@ impl<'subset, R: Real> Measure<'subset> for BoolMeasure<R> {
 
     type Measurement = R;
 
-    type PointMeasurement = R;
-
     type PMeasure = BoolPMeasure<R>;
 
     #[with]
@@ -69,18 +67,23 @@ impl<'subset, R: Real> Measure<'subset> for BoolMeasure<R> {
         &result
     }
 
-    fn measure_at(&self, value: &Self::Space) -> Self::PointMeasurement {
-        if *value {
-            self.true_value
-        } else {
-            self.false_value
-        }
-    }
-
     fn normalize(&self) -> Option<Self::PMeasure> {
         Some(BoolPMeasure(
             R::normalize_static([self.true_value, self.false_value])?[0],
         ))
+    }
+}
+
+impl<'subset, R: Real> PointMeasure<'subset> for BoolMeasure<R> {
+    type PointMeasurement = R;
+
+    #[with]
+    fn measure_at(&self, value: &Self::Space) -> &'ref Self::PointMeasurement {
+        if *value {
+            &self.true_value
+        } else {
+            &self.false_value
+        }
     }
 }
 

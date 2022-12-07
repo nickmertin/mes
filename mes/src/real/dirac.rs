@@ -2,8 +2,12 @@
 
 use core::ops::{Mul, MulAssign};
 use num_traits::float::FloatCore;
+use with_locals::with;
 
-use crate::measure::Measure;
+use crate::{
+    measurable::Measurable,
+    measure::{DiracMeasure, Measure, PointMeasure},
+};
 
 use super::Real;
 
@@ -46,27 +50,54 @@ impl<R: Real> MulAssign<R> for Dirac<R> {
     }
 }
 
-impl<R: Real + FloatCore> Measure for Dirac<R> {
+impl<'subset, R: Real + FloatCore> Measure<'subset> for Dirac<R> {
     type R = R;
 
     type Space = R;
 
-    type Measurement<'a> = R
-    where
-        Self: 'a;
+    type Measurement = R;
 
     type PMeasure = PDirac<R>;
 
-    fn measure_at(&self, value: &Self::Space) -> Self::Measurement<'_> {
-        if *value == self.point {
-            R::infinity()
+    #[with]
+    fn measure<'a>(
+        &'a self,
+        domain: &'a <Self::Space as Measurable>::Subset<'a>,
+    ) -> &'ref Self::Measurement
+    where
+        'subset: 'a,
+    {
+        if domain.contains(&self.point) {
+            &self.weight
         } else {
-            R::zero()
+            &R::zero()
         }
     }
 
     fn normalize(&self) -> Option<Self::PMeasure> {
         R::normalize_static([self.weight])?;
         Some(PDirac { point: self.point })
+    }
+}
+
+impl<'subset, R: Real + FloatCore> PointMeasure<'subset> for Dirac<R> {
+    type PointMeasurement = R;
+
+    #[with]
+    fn measure_at(&self, value: &Self::Space) -> &'ref Self::PointMeasurement {
+        &if *value == self.point {
+            R::infinity()
+        } else {
+            R::zero()
+        }
+    }
+}
+
+impl<'subset, R: Real + FloatCore> DiracMeasure<'subset> for Dirac<R> {
+    fn point(value: &Self::Space) -> Self {
+        Self {
+            point: *value,
+            weight: R::one(),
+        }
     }
 }

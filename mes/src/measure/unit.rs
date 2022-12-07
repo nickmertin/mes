@@ -3,7 +3,7 @@ use with_locals::with;
 
 use crate::{measurable::Measurable, real::Real};
 
-use super::{DiracMeasure, Measure};
+use super::{DiracMeasure, Measure, PointMeasure};
 
 #[derive(Clone, Copy, PartialEq, PartialOrd, Add, AddAssign, Mul, MulAssign)]
 struct UnitMeasure<R: Real> {
@@ -26,8 +26,6 @@ impl<'subset, R: Real> Measure<'subset> for UnitMeasure<R> {
 
     type Measurement = R;
 
-    type PointMeasurement = R;
-
     type PMeasure = UnitPMeasure;
 
     #[with]
@@ -41,13 +39,18 @@ impl<'subset, R: Real> Measure<'subset> for UnitMeasure<R> {
         &if domain.full { self.weight } else { R::zero() }
     }
 
-    fn measure_at(&self, _value: &Self::Space) -> Self::PointMeasurement {
-        self.weight
-    }
-
     fn normalize(&self) -> Option<Self::PMeasure> {
         R::normalize_static([self.weight])?;
         Some(UnitPMeasure)
+    }
+}
+
+impl<'subset, R: Real> PointMeasure<'subset> for UnitMeasure<R> {
+    type PointMeasurement = R;
+
+    #[with]
+    fn measure_at(&self, _value: &Self::Space) -> &'ref Self::PointMeasurement {
+        &self.weight
     }
 }
 

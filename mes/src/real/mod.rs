@@ -5,7 +5,7 @@ use with_locals::with;
 
 use crate::{measurable::Measurable, sigma::SigmaAlgebra};
 
-// pub mod dirac;
+pub mod dirac;
 // pub mod gaussian;
 
 /// Describes a type which represents a real number.
@@ -45,6 +45,8 @@ pub trait RealSubset<R: Real> {
     fn is_empty(&self) -> bool;
 
     fn is_full(&self) -> bool;
+
+    fn contains(&self, value: &R) -> bool;
 }
 
 // pub trait RealFunction<T: Measurable + ?Sized, R: Real> {}
@@ -70,6 +72,10 @@ impl<'a, R: Real> SigmaAlgebra<'a> for dyn RealSubset<R> + 'a {
             fn is_full(&self) -> bool {
                 false
             }
+
+            fn contains(&self, _value: &R) -> bool {
+                false
+            }
         }
 
         &EmptySubset
@@ -85,6 +91,10 @@ impl<'a, R: Real> SigmaAlgebra<'a> for dyn RealSubset<R> + 'a {
             }
 
             fn is_full(&self) -> bool {
+                true
+            }
+
+            fn contains(&self, _value: &R) -> bool {
                 true
             }
         }
@@ -108,6 +118,10 @@ impl<'a, R: Real> SigmaAlgebra<'a> for dyn RealSubset<R> + 'a {
 
             fn is_full(&self) -> bool {
                 self.0.is_empty()
+            }
+
+            fn contains(&self, value: &R) -> bool {
+                !self.0.contains(value)
             }
         }
 
