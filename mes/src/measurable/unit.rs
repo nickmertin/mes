@@ -3,9 +3,9 @@
 use type_variance::Contravariant;
 use with_locals::with;
 
-use crate::{measure::Measure, sigma::SigmaAlgebra};
+use crate::sigma::SigmaAlgebra;
 
-use super::{Measurable, MeasurableFn};
+use super::{Measurable, MeasurableFn, PointMeasurable};
 
 pub struct UnitSubset {
     pub full: bool,
@@ -89,4 +89,13 @@ impl Measurable for () {
     // ) -> M::Measurement<'a> {
     //     m.measure(&UnitSubset(!domain.is_empty()))
     // }
+}
+
+impl PointMeasurable for () {
+    #[with]
+    fn point_subset(&self) -> &'ref Self::Subset<'_> {
+        #[with]
+        let x = Self::Subset::full();
+        x
+    }
 }

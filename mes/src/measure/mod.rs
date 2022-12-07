@@ -4,7 +4,7 @@ use core::ops::{Mul, MulAssign};
 use with_locals::with;
 
 use crate::{
-    measurable::{Measurable, MeasurableFn},
+    measurable::{Measurable, MeasurableFn, PointMeasurable},
     real::Real,
 };
 
@@ -117,25 +117,15 @@ impl<'subset, F: MeasurableFn<'subset> + ?Sized, M: Measure<'subset, Space = F::
     where
         'subset: 'a,
     {
-        // let g: &'a F = &self.function;
-        // let m: &'c M = &self.measure;
-        // <F as MeasurableFn<'a>>::with_preimage::<'a, 'c, _>(g, domain, |s| {
-        //     // m.with_measure::<'c, _>(s, |x| {
-        //     //     todo!()
-        //     //     // f(x)
-        //     // })
-        //     todo!()
-        // })
-        // let d = <F as MeasurableFn>::Codomain::subset_upcast::<'a, 'subset>(domain);
         #[with]
-        let s: &<<F as MeasurableFn>::Domain as Measurable>::Subset<'a> =
-            <F as MeasurableFn>::preimage(&self.function, domain);
+        let s = <F as MeasurableFn>::preimage(&self.function, domain);
+
         #[with]
         let x = self
             .measure
             .measure(<F as MeasurableFn>::Domain::subset_upcast(s));
-        &x
-        // todo!()
+
+        x
     }
 
     fn normalize(&self) -> Option<Self::PMeasure> {
@@ -146,14 +136,33 @@ impl<'subset, F: MeasurableFn<'subset> + ?Sized, M: Measure<'subset, Space = F::
     }
 }
 
-impl<'subset, F: MeasurableFn<'subset> + ?Sized, M: PointMeasure<'subset, Space = F::Domain>>
+impl<'subset, F: MeasurableFn<'subset> + ?Sized, M: Measure<'subset, Space = F::Domain>>
     PointMeasure<'subset> for CompositeMeasure<'subset, F, M>
+where
+    <F as MeasurableFn<'subset>>::Codomain: PointMeasurable,
 {
-    type PointMeasurement = M::PointMeasurement;
+    type PointMeasurement = M::Measurement;
 
     #[with]
-    fn measure_at(&self, value: &Self::Space) -> &'ref Self::PointMeasurement {
-        todo!()
+    fn measure_at<'a>(&'a self, value: &'a Self::Space) -> &'ref Self::PointMeasurement {
+        // TODO: make this be able to take point measurements from M as well, depending
+        // on the type of function.
+
+        #[with]
+        let domain = value.point_subset();
+
+        #[with]
+        let s = <F as MeasurableFn>::preimage(
+            &self.function,
+            <F as MeasurableFn>::Codomain::subset_upcast(domain),
+        );
+
+        #[with]
+        let x = self
+            .measure
+            .measure(<F as MeasurableFn>::Domain::subset_upcast(s));
+
+        x
     }
 }
 

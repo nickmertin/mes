@@ -1,12 +1,11 @@
 //! Implementation of the unit type as a measurable space.
 
 use core::ops::Not;
-
 use with_locals::with;
 
-use crate::{measure::Measure, sigma::SigmaAlgebra};
+use crate::sigma::SigmaAlgebra;
 
-use super::{Measurable, MeasurableFn};
+use super::{Measurable, MeasurableFn, PointMeasurable};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BoolSubset {
@@ -122,4 +121,14 @@ impl Measurable for bool {
     //     // m.measure(&BoolSubset(!domain.is_empty()))
     //     todo!()
     // }
+}
+
+impl PointMeasurable for bool {
+    #[with]
+    fn point_subset(&self) -> &'ref Self::Subset<'_> {
+        &BoolSubset {
+            includes_true: *self,
+            includes_false: !*self,
+        }
+    }
 }

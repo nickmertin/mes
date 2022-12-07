@@ -1,10 +1,6 @@
 use with_locals::with;
 
-use crate::{
-    measure::Measure,
-    real::{Real, RealDistribution},
-    sigma::SigmaAlgebra,
-};
+use crate::sigma::SigmaAlgebra;
 
 pub mod boolean;
 pub mod unit;
@@ -73,6 +69,11 @@ pub trait Measurable {
     //     m: &Self::Measure<R>,
     //     f: impl for<'a> FnOnce(&'a Self::PMeasure<R>) -> T,
     // ) -> Option<T>;
+}
+
+pub trait PointMeasurable: Measurable {
+    #[with]
+    fn point_subset(&self) -> &'ref Self::Subset<'_>;
 }
 
 pub trait MeasurableFn<'subset> {
