@@ -1,9 +1,10 @@
-//! Provides the [`SigmaAlgebra`] trait.
-
 use with_locals::with;
 
+/// Describes a [σ-algebra](https://en.wikipedia.org/wiki/%CE%A3-algebra) over a
+/// given space.
 pub trait SigmaAlgebra<'a> {
-    type Space;
+    /// The space over which the σ-algebra is defined.
+    type Space: ?Sized;
 
     #[with]
     fn empty() -> &'ref Self;

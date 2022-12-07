@@ -1,4 +1,4 @@
-//! Implementation of (univariate) Dirac delta distributions.
+//! Implementation of (univariate) Dirac delta measure.
 
 use core::ops::{Mul, MulAssign};
 use num_traits::float::FloatCore;
@@ -11,13 +11,17 @@ use super::Real;
 #[derive(PartialEq)]
 ///A (univariate) weighted Dirac delta measure.
 pub struct Dirac<R: Real> {
+    /// The location of the point mass.
     pub point: R,
+
+    /// THe weight of the measure.
     pub weight: R,
 }
 
 #[derive(PartialEq, PartialOrd)]
-///A (univariate) Dirac delta distribution.
+///A (univariate) Dirac delta probability measure.
 pub struct PDirac<R: Real> {
+    /// The location of the point mass.
     pub point: R,
 }
 

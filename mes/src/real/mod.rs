@@ -41,11 +41,15 @@ macro_rules! impl_real {
 impl_real!(f32);
 impl_real!(f64);
 
+/// Describes a subset of the real number line.
 pub trait RealSubset<R: Real> {
+    /// Checks whether the subset is empty.
     fn is_empty(&self) -> bool;
 
+    /// Checks whether the subset is full (i.e., contains the entire real line).
     fn is_full(&self) -> bool;
 
+    /// Checks whether the subset contains the given value.
     fn contains(&self, value: &R) -> bool;
 }
 
