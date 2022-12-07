@@ -58,17 +58,18 @@ impl<'a, T: Measurable + ?Sized + 'a> MeasurableFn<'a> for BoolFunction<'a, T> {
 
     type Codomain = bool;
 
-    fn with_preimage<U>(
+    fn with_preimage<'b: 'a, 'c, U>(
         f: &'a Self,
-        s: &'a <Self::Codomain as Measurable>::Subset<'a>,
-        g: impl FnOnce(&<Self::Domain as Measurable>::Subset<'_>) -> U,
+        s: &'c <Self::Codomain as Measurable>::Subset<'b>,
+        g: impl FnOnce(&<Self::Domain as Measurable>::Subset<'c>) -> U + 'c,
     ) -> U {
-        match (s.includes_true, s.includes_false) {
-            (true, true) => T::Subset::with_full(g),
-            (true, false) => g(&f.true_partition),
-            (false, true) => f.true_partition.with_inversion(g),
-            (false, false) => T::Subset::with_empty(g),
-        }
+        // match (s.includes_true, s.includes_false) {
+        //     (true, true) => T::Subset::with_full(g),
+        //     (true, false) => g(&f.true_partition),
+        //     (false, true) => f.true_partition.with_inversion(g),
+        //     (false, false) => T::Subset::with_empty(g),
+        // }
+        todo!()
     }
 }
 

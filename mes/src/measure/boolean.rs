@@ -39,21 +39,22 @@ impl<R: Real> From<BoolPMeasure<R>> for BoolMeasure<R> {
 //     }
 // }
 
-impl<R: Real> Measure for BoolMeasure<R> {
+impl<'a, R: Real> Measure<'a> for BoolMeasure<R> {
     type R = R;
 
     type Space = bool;
 
-    type Measurement<'a> = R
-    where
-        Self: 'a;
+    type Measurement = R;
 
-    type PointMeasurement<'a> = R
-    where
-        Self: 'a;
+    type PointMeasurement = R;
+
     type PMeasure = BoolPMeasure<R>;
 
-    fn measure(&self, domain: &<Self::Space as Measurable>::Subset<'_>) -> Self::Measurement<'_> {
+    fn with_measure<'subset: 'a, 'b, U>(
+        &'a self,
+        domain: &'b <Self::Space as Measurable>::Subset<'subset>,
+        f: impl FnOnce(&Self::Measurement) -> U + 'b,
+    ) -> U {
         let mut result = R::zero();
         if domain.includes_true {
             result += self.true_value;
@@ -61,10 +62,10 @@ impl<R: Real> Measure for BoolMeasure<R> {
         if domain.includes_false {
             result += self.false_value;
         }
-        result
+        f(&result)
     }
 
-    fn measure_at(&self, value: &Self::Space) -> Self::PointMeasurement<'_> {
+    fn measure_at(&self, value: &Self::Space) -> Self::PointMeasurement {
         if *value {
             self.true_value
         } else {
@@ -79,7 +80,7 @@ impl<R: Real> Measure for BoolMeasure<R> {
     }
 }
 
-impl<R: Real> DiracMeasure for BoolMeasure<R> {
+impl<'a, R: Real> DiracMeasure<'a> for BoolMeasure<R> {
     fn point(value: &Self::Space) -> Self {
         if *value {
             Self {

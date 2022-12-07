@@ -37,10 +37,10 @@ impl<'a, T: Measurable + ?Sized + 'a> MeasurableFn<'a> for UnitFunction<T> {
 
     type Codomain = ();
 
-    fn with_preimage<U>(
+    fn with_preimage<'b: 'a, 'c, U>(
         _f: &'a Self,
-        s: &'a <Self::Codomain as Measurable>::Subset<'a>,
-        g: impl FnOnce(&<Self::Domain as Measurable>::Subset<'_>) -> U,
+        s: &'c <Self::Codomain as Measurable>::Subset<'b>,
+        g: impl FnOnce(&<Self::Domain as Measurable>::Subset<'c>) -> U + 'c,
     ) -> U {
         if s.full {
             T::Subset::with_full(g)

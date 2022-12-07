@@ -18,30 +18,26 @@ impl<R: Real> From<UnitPMeasure> for UnitMeasure<R> {
     }
 }
 
-impl<R: Real> Measure for UnitMeasure<R> {
+impl<'a, R: Real> Measure<'a> for UnitMeasure<R> {
     type R = R;
 
     type Space = ();
 
-    type Measurement<'a> = R
-    where
-        Self: 'a;
+    type Measurement = R;
 
-    type PointMeasurement<'a> = R
-    where
-        Self: 'a;
+    type PointMeasurement = R;
 
     type PMeasure = UnitPMeasure;
 
-    fn measure(&self, domain: &<Self::Space as Measurable>::Subset<'_>) -> Self::Measurement<'_> {
-        if domain.full {
-            self.weight
-        } else {
-            R::zero()
-        }
+    fn with_measure<'subset: 'a, 'b, U>(
+        &'a self,
+        domain: &'b <Self::Space as Measurable>::Subset<'subset>,
+        f: impl FnOnce(&Self::Measurement) -> U + 'b,
+    ) -> U {
+        f(&if domain.full { self.weight } else { R::zero() })
     }
 
-    fn measure_at(&self, _value: &Self::Space) -> Self::PointMeasurement<'_> {
+    fn measure_at(&self, _value: &Self::Space) -> Self::PointMeasurement {
         self.weight
     }
 
@@ -51,7 +47,7 @@ impl<R: Real> Measure for UnitMeasure<R> {
     }
 }
 
-impl<R: Real> DiracMeasure for UnitMeasure<R> {
+impl<'a, R: Real> DiracMeasure<'a> for UnitMeasure<R> {
     fn point(_value: &Self::Space) -> Self {
         Self { weight: R::one() }
     }
