@@ -13,7 +13,7 @@ pub struct UnitSubset {
 
 pub struct UnitFunction<T: ?Sized>(Contravariant<T>);
 
-impl SigmaAlgebra for UnitSubset {
+impl SigmaAlgebra<'_> for UnitSubset {
     type Space = ();
 
     #[with]
@@ -30,8 +30,8 @@ impl SigmaAlgebra for UnitSubset {
         !self.full
     }
 
-    #[with('local)]
-    fn inversion(&self) -> &'local Self {
+    #[with]
+    fn inversion(&self) -> &'ref Self {
         &Self { full: !self.full }
     }
 }
@@ -42,10 +42,10 @@ impl<T: Measurable + ?Sized> MeasurableFn for UnitFunction<T> {
     type Codomain = ();
 
     #[with]
-    fn preimage(
+    fn preimage<'subset>(
         _f: &Self,
-        s: &<Self::Codomain as Measurable>::Subset,
-    ) -> &'ref <Self::Domain as Measurable>::Subset {
+        s: &<Self::Codomain as Measurable>::Subset<'subset>,
+    ) -> &'ref <Self::Domain as Measurable>::Subset<'subset> {
         if s.full {
             #[with]
             let x = T::Subset::full();
@@ -59,7 +59,7 @@ impl<T: Measurable + ?Sized> MeasurableFn for UnitFunction<T> {
 }
 
 impl Measurable for () {
-    type Subset = UnitSubset;
+    type Subset<'a> = UnitSubset;
 
     // type Function<'a, T: Measurable + ?Sized + 'a> = UnitFunction;
 

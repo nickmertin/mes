@@ -2,7 +2,7 @@
 
 use with_locals::with;
 
-pub trait SigmaAlgebra {
+pub trait SigmaAlgebra<'a> {
     type Space;
 
     #[with]
@@ -11,8 +11,8 @@ pub trait SigmaAlgebra {
     #[with]
     fn full() -> &'ref Self;
 
-    fn is_empty(&self) -> bool;
+    fn is_empty(&'a self) -> bool;
 
-    #[with('local)]
-    fn inversion(&self) -> &'local Self;
+    #[with]
+    fn inversion(&'a self) -> &'ref Self;
 }

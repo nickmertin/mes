@@ -27,7 +27,10 @@ pub trait Measure: From<Self::PMeasure> + Mul<Self::R, Output = Self> + MulAssig
     type PMeasure;
 
     #[with]
-    fn measure(&self, domain: &<Self::Space as Measurable>::Subset) -> &'ref Self::Measurement;
+    fn measure<'subset>(
+        &self,
+        domain: &<Self::Space as Measurable>::Subset<'subset>,
+    ) -> &'ref Self::Measurement;
 
     fn measure_at(&self, value: &Self::Space) -> Self::PointMeasurement;
 
@@ -106,7 +109,10 @@ impl<'a, F: MeasurableFn + ?Sized, M: Measure<Space = F::Domain>> Measure
     type PMeasure = CompositePMeasure<'a, F, M>;
 
     #[with]
-    fn measure(&self, domain: &<Self::Space as Measurable>::Subset) -> &'ref Self::Measurement {
+    fn measure<'subset>(
+        &self,
+        domain: &<Self::Space as Measurable>::Subset<'subset>,
+    ) -> &'ref Self::Measurement {
         // let g: &'a F = &self.function;
         // let m: &'c M = &self.measure;
         // <F as MeasurableFn<'a>>::with_preimage::<'a, 'c, _>(g, domain, |s| {

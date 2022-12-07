@@ -52,7 +52,10 @@ impl<R: Real> Measure for BoolMeasure<R> {
     type PMeasure = BoolPMeasure<R>;
 
     #[with]
-    fn measure(&self, domain: &<Self::Space as Measurable>::Subset) -> &'ref Self::Measurement {
+    fn measure<'subset>(
+        &self,
+        domain: &<Self::Space as Measurable>::Subset<'subset>,
+    ) -> &'ref Self::Measurement {
         let mut result = R::zero();
         if domain.includes_true {
             result += self.true_value;

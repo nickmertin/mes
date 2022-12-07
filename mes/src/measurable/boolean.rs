@@ -14,8 +14,8 @@ pub struct BoolSubset {
     pub includes_false: bool,
 }
 
-pub struct BoolFunction<T: Measurable + ?Sized> {
-    pub true_partition: T::Subset,
+pub struct BoolFunction<'a, T: Measurable + ?Sized> {
+    pub true_partition: T::Subset<'a>,
 }
 
 impl Not for BoolSubset {
@@ -29,7 +29,7 @@ impl Not for BoolSubset {
     }
 }
 
-impl SigmaAlgebra for BoolSubset {
+impl SigmaAlgebra<'_> for BoolSubset {
     type Space = bool;
 
     #[with]
@@ -52,22 +52,22 @@ impl SigmaAlgebra for BoolSubset {
         !self.includes_true && !self.includes_false
     }
 
-    #[with('local)]
-    fn inversion(&self) -> &'local Self {
+    #[with]
+    fn inversion(&self) -> &'ref Self {
         &!*self
     }
 }
 
-impl<T: Measurable + ?Sized> MeasurableFn for BoolFunction<T> {
+impl<'a, T: Measurable + ?Sized> MeasurableFn for BoolFunction<'a, T> {
     type Domain = T;
 
     type Codomain = bool;
 
     #[with]
-    fn preimage(
+    fn preimage<'subset>(
         f: &Self,
-        s: &<Self::Codomain as Measurable>::Subset,
-    ) -> &'ref <Self::Domain as Measurable>::Subset {
+        s: &<Self::Codomain as Measurable>::Subset<'subset>,
+    ) -> &'ref <Self::Domain as Measurable>::Subset<'subset> {
         // match (s.includes_true, s.includes_false) {
         //     (true, true) => T::Subset::with_full(g),
         //     (true, false) => g(&f.true_partition),
@@ -79,7 +79,7 @@ impl<T: Measurable + ?Sized> MeasurableFn for BoolFunction<T> {
 }
 
 impl Measurable for bool {
-    type Subset = BoolSubset;
+    type Subset<'a> = BoolSubset;
 
     // type Function<'a, T: Measurable + ?Sized + 'a> = BoolFunction<'a, T>;
 

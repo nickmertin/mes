@@ -31,7 +31,10 @@ impl<R: Real> Measure for UnitMeasure<R> {
     type PMeasure = UnitPMeasure;
 
     #[with]
-    fn measure(&self, domain: &<Self::Space as Measurable>::Subset) -> &'ref Self::Measurement {
+    fn measure<'subset>(
+        &self,
+        domain: &<Self::Space as Measurable>::Subset<'subset>,
+    ) -> &'ref Self::Measurement {
         &if domain.full { self.weight } else { R::zero() }
     }
 

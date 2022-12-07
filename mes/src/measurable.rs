@@ -12,7 +12,7 @@ pub mod unit;
 /// Describes a data type as a measurable space.
 pub trait Measurable {
     /// The type representing measurable subsets of [`Self`].
-    type Subset: SigmaAlgebra + ?Sized;
+    type Subset<'a>: SigmaAlgebra<'a> + ?Sized;
 
     // /// The type representing measurable functions from `T` to [`Self`].
     // type Function<'a, T: Measurable + ?Sized + 'a>: ?Sized + 'a;
@@ -64,10 +64,10 @@ pub trait MeasurableFn {
     type Codomain: Measurable + ?Sized;
 
     #[with]
-    fn preimage(
+    fn preimage<'subset>(
         f: &Self,
-        s: &<Self::Codomain as Measurable>::Subset,
-    ) -> &'ref <Self::Domain as Measurable>::Subset;
+        s: &<Self::Codomain as Measurable>::Subset<'subset>,
+    ) -> &'ref <Self::Domain as Measurable>::Subset<'subset>;
 }
 
 // impl Measurable for () {
