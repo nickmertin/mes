@@ -1,6 +1,6 @@
-use mes::Measurable;
+// use mes::Measurable;
 
-#[derive(Debug, Measurable)]
+// #[derive(Debug, Measurable)]
 enum MyEnum {
     // A(f32),
     B(bool),

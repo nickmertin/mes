@@ -18,6 +18,7 @@ mes-derive = { version = "0.1.0", path = "../mes-derive", optional = true }
 nalgebra = { version = "0.31.4", default-features = false, features = ["matrixmultiply"], optional = true }
 num-traits = { version = "0.2.15", default-features = false }
 simba = { version = "0.7.3", default-features = false }
+type-variance = "0.1.0"
 void = "1.0.2"
 
 [package.metadata.docs.rs]

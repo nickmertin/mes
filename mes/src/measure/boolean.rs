@@ -1,6 +1,6 @@
 use derive_more::{Add, AddAssign, Mul, MulAssign};
 
-use crate::real::Real;
+use crate::{measurable::Measurable, real::Real};
 
 use super::{DiracMeasure, Measure};
 
@@ -48,9 +48,23 @@ impl<R: Real> Measure for BoolMeasure<R> {
     where
         Self: 'a;
 
+    type PointMeasurement<'a> = R
+    where
+        Self: 'a;
     type PMeasure = BoolPMeasure<R>;
 
-    fn measure_at(&self, value: &Self::Space) -> Self::Measurement<'_> {
+    fn measure(&self, domain: &<Self::Space as Measurable>::Subset<'_>) -> Self::Measurement<'_> {
+        let mut result = R::zero();
+        if domain.includes_true {
+            result += self.true_value;
+        }
+        if domain.includes_false {
+            result += self.false_value;
+        }
+        result
+    }
+
+    fn measure_at(&self, value: &Self::Space) -> Self::PointMeasurement<'_> {
         if *value {
             self.true_value
         } else {
