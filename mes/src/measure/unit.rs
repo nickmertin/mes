@@ -19,7 +19,7 @@ impl<R: Real> From<UnitPMeasure> for UnitMeasure<R> {
     }
 }
 
-impl<R: Real> Measure for UnitMeasure<R> {
+impl<'subset, R: Real> Measure<'subset> for UnitMeasure<R> {
     type R = R;
 
     type Space = ();
@@ -31,10 +31,13 @@ impl<R: Real> Measure for UnitMeasure<R> {
     type PMeasure = UnitPMeasure;
 
     #[with]
-    fn measure<'subset>(
-        &self,
-        domain: &<Self::Space as Measurable>::Subset<'subset>,
-    ) -> &'ref Self::Measurement {
+    fn measure<'a>(
+        &'a self,
+        domain: &'a <Self::Space as Measurable>::Subset<'a>,
+    ) -> &'ref Self::Measurement
+    where
+        'subset: 'a,
+    {
         &if domain.full { self.weight } else { R::zero() }
     }
 
@@ -48,7 +51,7 @@ impl<R: Real> Measure for UnitMeasure<R> {
     }
 }
 
-impl<R: Real> DiracMeasure for UnitMeasure<R> {
+impl<'subset, R: Real> DiracMeasure<'subset> for UnitMeasure<R> {
     fn point(_value: &Self::Space) -> Self {
         Self { weight: R::one() }
     }

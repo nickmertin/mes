@@ -36,16 +36,19 @@ impl SigmaAlgebra<'_> for UnitSubset {
     }
 }
 
-impl<T: Measurable + ?Sized> MeasurableFn for UnitFunction<T> {
+impl<'subset, T: Measurable + ?Sized> MeasurableFn<'subset> for UnitFunction<T> {
     type Domain = T;
 
     type Codomain = ();
 
     #[with]
-    fn preimage<'subset>(
-        _f: &Self,
-        s: &<Self::Codomain as Measurable>::Subset<'subset>,
-    ) -> &'ref <Self::Domain as Measurable>::Subset<'subset> {
+    fn preimage<'a>(
+        _f: &'a Self,
+        s: &'a <Self::Codomain as Measurable>::Subset<'a>,
+    ) -> &'ref <Self::Domain as Measurable>::Subset<'a>
+    where
+        'subset: 'a,
+    {
         if s.full {
             #[with]
             let x = T::Subset::full();
@@ -60,6 +63,10 @@ impl<T: Measurable + ?Sized> MeasurableFn for UnitFunction<T> {
 
 impl Measurable for () {
     type Subset<'a> = UnitSubset;
+
+    fn subset_upcast<'a, 'b: 'a>(s: &'a Self::Subset<'b>) -> &'a Self::Subset<'a> {
+        s
+    }
 
     // type Function<'a, T: Measurable + ?Sized + 'a> = UnitFunction;
 

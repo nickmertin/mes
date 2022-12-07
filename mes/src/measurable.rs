@@ -14,6 +14,8 @@ pub trait Measurable {
     /// The type representing measurable subsets of [`Self`].
     type Subset<'a>: SigmaAlgebra<'a> + ?Sized;
 
+    fn subset_upcast<'a, 'b: 'a>(s: &'a Self::Subset<'b>) -> &'a Self::Subset<'a>;
+
     // /// The type representing measurable functions from `T` to [`Self`].
     // type Function<'a, T: Measurable + ?Sized + 'a>: ?Sized + 'a;
 
@@ -59,15 +61,18 @@ pub trait Measurable {
     // ) -> Option<T>;
 }
 
-pub trait MeasurableFn {
+pub trait MeasurableFn<'subset> {
     type Domain: Measurable + ?Sized;
+
     type Codomain: Measurable + ?Sized;
 
     #[with]
-    fn preimage<'subset>(
-        f: &Self,
-        s: &<Self::Codomain as Measurable>::Subset<'subset>,
-    ) -> &'ref <Self::Domain as Measurable>::Subset<'subset>;
+    fn preimage<'a>(
+        f: &'a Self,
+        s: &'a <Self::Codomain as Measurable>::Subset<'a>,
+    ) -> &'ref <Self::Domain as Measurable>::Subset<'a>
+    where
+        'subset: 'a;
 }
 
 // impl Measurable for () {

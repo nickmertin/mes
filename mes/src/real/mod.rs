@@ -118,6 +118,10 @@ impl<'a, R: Real> SigmaAlgebra<'a> for dyn RealSubset<R> + 'a {
 impl<R: Real> Measurable for R {
     type Subset<'a> = dyn RealSubset<R> + 'a;
 
+    fn subset_upcast<'a, 'b: 'a>(s: &'a Self::Subset<'b>) -> &'a Self::Subset<'a> {
+        s
+    }
+
     // type Function<'a, T: Measurable + ?Sized + 'a> = dyn RealFunction<T, R> + 'a;
 
     // fn with_preimage<'a, T: Measurable + ?Sized + 'a, U>(

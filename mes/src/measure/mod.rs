@@ -15,7 +15,9 @@ use crate::{
 pub mod boolean;
 pub mod unit;
 
-pub trait Measure: From<Self::PMeasure> + Mul<Self::R, Output = Self> + MulAssign<Self::R> {
+pub trait Measure<'subset>:
+    From<Self::PMeasure> + Mul<Self::R, Output = Self> + MulAssign<Self::R>
+{
     type R: Real;
 
     type Space: Measurable + ?Sized;
@@ -27,46 +29,48 @@ pub trait Measure: From<Self::PMeasure> + Mul<Self::R, Output = Self> + MulAssig
     type PMeasure;
 
     #[with]
-    fn measure<'subset>(
-        &self,
-        domain: &<Self::Space as Measurable>::Subset<'subset>,
-    ) -> &'ref Self::Measurement;
+    fn measure<'a>(
+        &'a self,
+        domain: &'a <Self::Space as Measurable>::Subset<'a>,
+    ) -> &'ref Self::Measurement
+    where
+        'subset: 'a;
 
     fn measure_at(&self, value: &Self::Space) -> Self::PointMeasurement;
 
     fn normalize(&self) -> Option<Self::PMeasure>;
 }
 
-pub trait DiracMeasure: Measure {
+pub trait DiracMeasure<'subset>: Measure<'subset> {
     fn point(value: &Self::Space) -> Self;
 }
 
 pub struct CompositeMeasure<
-    'a,
+    'subset,
     // T: Measurable + ?Sized + 'a,
     // U: Measurable + ?Sized,
-    F: MeasurableFn + ?Sized,
-    M: Measure<Space = F::Domain>,
+    F: MeasurableFn<'subset> + ?Sized,
+    M: Measure<'subset, Space = F::Domain>,
 > {
-    function: &'a F,
+    function: &'subset F,
     measure: M,
 }
 
 pub struct CompositePMeasure<
-    'a,
+    'subset,
     // T: Measurable + ?Sized + 'a,
     // U: Measurable + ?Sized,
-    F: MeasurableFn + ?Sized,
-    M: Measure<Space = F::Domain>,
+    F: MeasurableFn<'subset> + ?Sized,
+    M: Measure<'subset, Space = F::Domain>,
 > {
-    function: &'a F,
+    function: &'subset F,
     measure: M::PMeasure,
 }
 
-impl<'a, F: MeasurableFn + ?Sized, M: Measure<Space = F::Domain>> From<CompositePMeasure<'a, F, M>>
-    for CompositeMeasure<'a, F, M>
+impl<'subset, F: MeasurableFn<'subset> + ?Sized, M: Measure<'subset, Space = F::Domain>>
+    From<CompositePMeasure<'subset, F, M>> for CompositeMeasure<'subset, F, M>
 {
-    fn from(p: CompositePMeasure<'a, F, M>) -> Self {
+    fn from(p: CompositePMeasure<'subset, F, M>) -> Self {
         Self {
             function: p.function,
             measure: p.measure.into(),
@@ -74,8 +78,8 @@ impl<'a, F: MeasurableFn + ?Sized, M: Measure<Space = F::Domain>> From<Composite
     }
 }
 
-impl<'a, F: MeasurableFn + ?Sized, M: Measure<Space = F::Domain>> Mul<M::R>
-    for CompositeMeasure<'a, F, M>
+impl<'subset, F: MeasurableFn<'subset> + ?Sized, M: Measure<'subset, Space = F::Domain>> Mul<M::R>
+    for CompositeMeasure<'subset, F, M>
 {
     type Output = Self;
 
@@ -87,16 +91,16 @@ impl<'a, F: MeasurableFn + ?Sized, M: Measure<Space = F::Domain>> Mul<M::R>
     }
 }
 
-impl<'a, F: MeasurableFn + ?Sized, M: Measure<Space = F::Domain>> MulAssign<M::R>
-    for CompositeMeasure<'a, F, M>
+impl<'subset, F: MeasurableFn<'subset> + ?Sized, M: Measure<'subset, Space = F::Domain>>
+    MulAssign<M::R> for CompositeMeasure<'subset, F, M>
 {
     fn mul_assign(&mut self, rhs: M::R) {
         self.measure *= rhs
     }
 }
 
-impl<'a, F: MeasurableFn + ?Sized, M: Measure<Space = F::Domain>> Measure
-    for CompositeMeasure<'a, F, M>
+impl<'subset, F: MeasurableFn<'subset> + ?Sized, M: Measure<'subset, Space = F::Domain>>
+    Measure<'subset> for CompositeMeasure<'subset, F, M>
 {
     type R = M::R;
 
@@ -106,13 +110,16 @@ impl<'a, F: MeasurableFn + ?Sized, M: Measure<Space = F::Domain>> Measure
 
     type PointMeasurement = M::PointMeasurement;
 
-    type PMeasure = CompositePMeasure<'a, F, M>;
+    type PMeasure = CompositePMeasure<'subset, F, M>;
 
     #[with]
-    fn measure<'subset>(
-        &self,
-        domain: &<Self::Space as Measurable>::Subset<'subset>,
-    ) -> &'ref Self::Measurement {
+    fn measure<'a>(
+        &'a self,
+        domain: &'a <Self::Space as Measurable>::Subset<'a>,
+    ) -> &'ref Self::Measurement
+    where
+        'subset: 'a,
+    {
         // let g: &'a F = &self.function;
         // let m: &'c M = &self.measure;
         // <F as MeasurableFn<'a>>::with_preimage::<'a, 'c, _>(g, domain, |s| {
@@ -122,10 +129,14 @@ impl<'a, F: MeasurableFn + ?Sized, M: Measure<Space = F::Domain>> Measure
         //     // })
         //     todo!()
         // })
+        // let d = <F as MeasurableFn>::Codomain::subset_upcast::<'a, 'subset>(domain);
         #[with]
-        let s = <F as MeasurableFn>::preimage(&self.function, domain);
+        let s: &<<F as MeasurableFn>::Domain as Measurable>::Subset<'a> =
+            <F as MeasurableFn>::preimage(&self.function, domain);
         #[with]
-        let x = self.measure.measure(s);
+        let x = self
+            .measure
+            .measure(<F as MeasurableFn>::Domain::subset_upcast(s));
         &x
         // todo!()
     }
@@ -142,10 +153,10 @@ impl<'a, F: MeasurableFn + ?Sized, M: Measure<Space = F::Domain>> Measure
     }
 }
 
-pub fn compose<F: MeasurableFn + ?Sized, M: Measure<Space = F::Domain>>(
-    function: &F,
+pub fn compose<'a, F: MeasurableFn<'a> + ?Sized, M: Measure<'a, Space = F::Domain>>(
+    function: &'a F,
     measure: M,
-) -> CompositeMeasure<'_, F, M> {
+) -> CompositeMeasure<'a, F, M> {
     CompositeMeasure { function, measure }
 }
 

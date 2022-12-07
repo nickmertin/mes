@@ -40,7 +40,7 @@ impl<R: Real> From<BoolPMeasure<R>> for BoolMeasure<R> {
 //     }
 // }
 
-impl<R: Real> Measure for BoolMeasure<R> {
+impl<'subset, R: Real> Measure<'subset> for BoolMeasure<R> {
     type R = R;
 
     type Space = bool;
@@ -52,10 +52,13 @@ impl<R: Real> Measure for BoolMeasure<R> {
     type PMeasure = BoolPMeasure<R>;
 
     #[with]
-    fn measure<'subset>(
-        &self,
-        domain: &<Self::Space as Measurable>::Subset<'subset>,
-    ) -> &'ref Self::Measurement {
+    fn measure<'a>(
+        &'a self,
+        domain: &'a <Self::Space as Measurable>::Subset<'a>,
+    ) -> &'ref Self::Measurement
+    where
+        'subset: 'a,
+    {
         let mut result = R::zero();
         if domain.includes_true {
             result += self.true_value;
@@ -81,7 +84,7 @@ impl<R: Real> Measure for BoolMeasure<R> {
     }
 }
 
-impl<R: Real> DiracMeasure for BoolMeasure<R> {
+impl<'subset, R: Real> DiracMeasure<'subset> for BoolMeasure<R> {
     fn point(value: &Self::Space) -> Self {
         if *value {
             Self {
