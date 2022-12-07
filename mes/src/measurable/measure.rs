@@ -113,7 +113,7 @@ impl<'subset, F: MeasurableFn<'subset> + ?Sized, M: Measure<'subset, Space = F::
         'subset: 'a,
     {
         #[with]
-        let s = <F as MeasurableFn>::preimage(&self.function, domain);
+        let s = <F as MeasurableFn>::preimage(self.function, domain);
 
         #[with]
         let x = self
@@ -148,7 +148,7 @@ where
 
         #[with]
         let s = <F as MeasurableFn>::preimage(
-            &self.function,
+            self.function,
             <F as MeasurableFn>::Codomain::subset_upcast(domain),
         );
 

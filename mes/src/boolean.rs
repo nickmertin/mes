@@ -76,18 +76,18 @@ impl<'subset, T: Measurable + ?Sized> MeasurableFn<'subset> for BoolFunction<'su
             (true, true) => {
                 #[with]
                 let x = T::Subset::full();
-                &x
+                x
             }
             (true, false) => T::subset_upcast(&f.true_partition),
             (false, true) => {
                 #[with]
                 let x = T::subset_upcast(&f.true_partition).inversion();
-                &x
+                x
             }
             (false, false) => {
                 #[with]
                 let x = T::Subset::empty();
-                &x
+                x
             }
         }
     }
