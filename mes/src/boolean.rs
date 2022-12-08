@@ -10,13 +10,19 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// A subset of [`bool`].
 pub struct BoolSubset {
+    /// Whether the subset includes `true`.
     pub includes_true: bool,
+
+    /// Whether the subset includes `false`.
     pub includes_false: bool,
 }
 
+/// A measurable function whose codomain is [`bool`].
 pub struct BoolFunction<'a, T: Measurable + ?Sized> {
-    pub true_partition: T::Subset<'a>,
+    /// The subset of the domain which maps to `true`.
+    pub true_primage: T::Subset<'a>,
 }
 
 impl Not for BoolSubset {
@@ -54,7 +60,7 @@ impl SigmaAlgebra<'_> for BoolSubset {
     }
 
     #[with]
-    fn inversion(&self) -> &'ref Self {
+    fn complement(&self) -> &'ref Self {
         &!*self
     }
 }
@@ -74,19 +80,16 @@ impl<'subset, T: Measurable + ?Sized> MeasurableFn<'subset> for BoolFunction<'su
     {
         match (s.includes_true, s.includes_false) {
             (true, true) => {
-                #[with]
-                let x = T::Subset::full();
+                let x: &'ref _ = T::Subset::full();
                 x
             }
-            (true, false) => T::subset_upcast(&self.true_partition),
+            (true, false) => T::subset_upcast(&self.true_primage),
             (false, true) => {
-                #[with]
-                let x = T::subset_upcast(&self.true_partition).inversion();
+                let x: &'ref _ = T::subset_upcast(&self.true_primage).complement();
                 x
             }
             (false, false) => {
-                #[with]
-                let x = T::Subset::empty();
+                let x: &'ref _ = T::Subset::empty();
                 x
             }
         }
@@ -112,19 +115,27 @@ impl PointMeasurable for bool {
 }
 
 #[derive(Clone, Copy, PartialEq, Add, AddAssign, Mul, MulAssign)]
-struct BoolMeasure<R: Real> {
-    true_value: R,
-    false_value: R,
+/// A measure on [`bool`].
+pub struct BoolMeasure<R: Real> {
+    /// The value of the measure for `true`.
+    pub true_value: R,
+
+    /// The value of the measure for `false`.
+    pub false_value: R,
 }
 
 #[derive(Clone, Copy, PartialEq, PartialOrd)]
-struct BoolPMeasure<R: Real>(R);
+/// A probability measure on [`bool`].
+pub struct BoolPMeasure<R: Real> {
+    /// The value of the probability measure for `true`.
+    true_value: R,
+}
 
 impl<R: Real> From<BoolPMeasure<R>> for BoolMeasure<R> {
     fn from(m: BoolPMeasure<R>) -> Self {
         Self {
-            true_value: m.0,
-            false_value: R::one() - m.0,
+            true_value: m.true_value,
+            false_value: R::one() - m.true_value,
         }
     }
 }
@@ -157,9 +168,9 @@ impl<'subset, R: Real> Measure<'subset> for BoolMeasure<R> {
     }
 
     fn normalize(&self) -> Option<Self::PMeasure> {
-        Some(BoolPMeasure(
-            R::normalize_static([self.true_value, self.false_value])?[0],
-        ))
+        Some(BoolPMeasure {
+            true_value: R::normalize_static([self.true_value, self.false_value])?[0],
+        })
     }
 }
 
@@ -177,8 +188,8 @@ impl<'subset, R: Real> PointMeasure<'subset> for BoolMeasure<R> {
 }
 
 impl<'subset, R: Real> DiracMeasure<'subset> for BoolMeasure<R> {
-    fn point(value: &Self::Space) -> Self {
-        if *value {
+    fn dirac(point: &Self::Space) -> Self {
+        if *point {
             Self {
                 true_value: R::one(),
                 false_value: R::zero(),

@@ -104,7 +104,7 @@ impl<'a, R: Real> SigmaAlgebra<'a> for dyn RealSubset<R> + 'a {
     }
 
     #[with]
-    fn inversion(&'a self) -> &'ref Self {
+    fn complement(&'a self) -> &'ref Self {
         struct InverseSubset<'x, R>(&'x (dyn RealSubset<R> + 'x));
 
         impl<'x, R: Real> RealSubset<R> for InverseSubset<'x, R> {

@@ -9,10 +9,13 @@ use crate::{
     SigmaAlgebra,
 };
 
+/// A subset of the unit type.
 pub struct UnitSubset {
+    /// Whether the subset is the full or empty subset.
     pub full: bool,
 }
 
+/// A function whose codomain is the unit type.
 pub struct UnitFunction<T: ?Sized>(Contravariant<T>);
 
 impl SigmaAlgebra<'_> for UnitSubset {
@@ -33,7 +36,7 @@ impl SigmaAlgebra<'_> for UnitSubset {
     }
 
     #[with]
-    fn inversion(&self) -> &'ref Self {
+    fn complement(&self) -> &'ref Self {
         &Self { full: !self.full }
     }
 }
@@ -52,12 +55,10 @@ impl<'subset, T: Measurable + ?Sized> MeasurableFn<'subset> for UnitFunction<T> 
         'subset: 'a,
     {
         if s.full {
-            #[with]
-            let x = T::Subset::full();
+            let x: &'ref _ = T::Subset::full();
             x
         } else {
-            #[with]
-            let x = T::Subset::empty();
+            let x: &'ref _ = T::Subset::empty();
             x
         }
     }
@@ -81,12 +82,15 @@ impl PointMeasurable for () {
 }
 
 #[derive(Clone, Copy, PartialEq, PartialOrd, Add, AddAssign, Mul, MulAssign)]
-struct UnitMeasure<R: Real> {
-    weight: R,
+/// A measure on the unit type.
+pub struct UnitMeasure<R: Real> {
+    /// The weight of the measure.
+    pub weight: R,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-struct UnitPMeasure;
+/// A probability measure on the unit type.
+pub struct UnitPMeasure;
 
 impl<R: Real> From<UnitPMeasure> for UnitMeasure<R> {
     fn from(_: UnitPMeasure) -> Self {
@@ -130,7 +134,7 @@ impl<'subset, R: Real> PointMeasure<'subset> for UnitMeasure<R> {
 }
 
 impl<'subset, R: Real> DiracMeasure<'subset> for UnitMeasure<R> {
-    fn point(_value: &Self::Space) -> Self {
+    fn dirac(_point: &Self::Space) -> Self {
         Self { weight: R::one() }
     }
 }

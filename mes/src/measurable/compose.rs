@@ -79,14 +79,10 @@ impl<'subset, F: MeasurableFn<'subset> + ?Sized, M: Measure<'subset, Space = F::
     where
         'subset: 'a,
     {
-        #[with]
-        let s = <F as MeasurableFn>::preimage(self.function, domain);
-
-        #[with]
-        let x = self
+        let s: &'ref _ = <F as MeasurableFn>::preimage(self.function, domain);
+        let x: &'ref _ = self
             .measure
             .measure(<F as MeasurableFn>::Domain::subset_upcast(s));
-
         x
     }
 
@@ -110,26 +106,22 @@ where
         // TODO: make this be able to take point measurements from M as well, depending
         // on the type of function.
 
-        #[with]
-        let domain = value.point_subset();
-
-        #[with]
-        let s = <F as MeasurableFn>::preimage(
+        let domain: &'ref _ = value.point_subset();
+        let s: &'ref _ = <F as MeasurableFn>::preimage(
             self.function,
             <F as MeasurableFn>::Codomain::subset_upcast(domain),
         );
-
-        #[with]
-        let x = self
+        let x: &'ref _ = self
             .measure
             .measure(<F as MeasurableFn>::Domain::subset_upcast(s));
-
         x
     }
 }
 
-/// Composes a function with a measure. The domain of the function should be the
-/// measurable space associated with the measure.
+/// Composes a function with a measure.
+///
+/// The domain of the function should be the measurable space associated with
+/// the measure.
 pub fn compose_measure<'a, F: MeasurableFn<'a> + ?Sized, M: Measure<'a, Space = F::Domain>>(
     function: &'a F,
     measure: M,
@@ -165,15 +157,13 @@ impl<
     where
         'subset: 'a,
     {
-        #[with]
-        let s1 = self
+        let s: &'ref _ = self
             .g
             .preimage(<G::Codomain as Measurable>::subset_upcast(s));
-        #[with]
-        let s2 = self
+        let s: &'ref _ = self
             .f
-            .preimage(<F::Codomain as Measurable>::subset_upcast(s1));
-        s2
+            .preimage(<F::Codomain as Measurable>::subset_upcast(s));
+        s
     }
 }
 

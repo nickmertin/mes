@@ -95,9 +95,9 @@ impl<'subset, R: Real + FloatCore> PointMeasure<'subset> for Dirac<R> {
 }
 
 impl<'subset, R: Real + FloatCore> DiracMeasure<'subset> for Dirac<R> {
-    fn point(value: &Self::Space) -> Self {
+    fn dirac(point: &Self::Space) -> Self {
         Self {
-            point: *value,
+            point: *point,
             weight: R::one(),
         }
     }
