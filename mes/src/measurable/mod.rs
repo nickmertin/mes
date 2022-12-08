@@ -1,8 +1,10 @@
 use with_locals::with;
 
+mod compose;
 mod measure;
 mod sigma;
 
+pub use compose::*;
 pub use measure::*;
 pub use sigma::*;
 
@@ -18,7 +20,7 @@ pub trait Measurable {
     /// <https://internals.rust-lang.org/t/variance-of-lifetime-arguments-in-gats/14769/19>
     ///
     /// The implementation should just be:
-    /// ```rust
+    /// ```ignore
     /// fn subset_upcast<'a, 'b: 'a>(s: &'a Self::Subset<'b>) -> &'a Self::Subset<'a> {
     ///     s
     /// }
@@ -31,7 +33,7 @@ pub trait Measurable {
 
 pub trait PointMeasurable: Measurable {
     #[with]
-    fn point_subset(&self) -> &'ref Self::Subset<'_>;
+    fn point_subset(&self) -> &'ref Self::Subset<'ref>;
 }
 
 pub trait MeasurableFn<'subset> {
@@ -41,9 +43,9 @@ pub trait MeasurableFn<'subset> {
 
     #[with]
     fn preimage<'a>(
-        f: &'a Self,
+        &'a self,
         s: &'a <Self::Codomain as Measurable>::Subset<'a>,
-    ) -> &'ref <Self::Domain as Measurable>::Subset<'a>
+    ) -> &'ref <Self::Domain as Measurable>::Subset<'ref>
     where
         'subset: 'a;
 }

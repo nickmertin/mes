@@ -66,9 +66,9 @@ impl<'subset, T: Measurable + ?Sized> MeasurableFn<'subset> for BoolFunction<'su
 
     #[with]
     fn preimage<'a>(
-        f: &'a Self,
+        &'a self,
         s: &'a <Self::Codomain as Measurable>::Subset<'a>,
-    ) -> &'ref <Self::Domain as Measurable>::Subset<'a>
+    ) -> &'ref <Self::Domain as Measurable>::Subset<'ref>
     where
         'subset: 'a,
     {
@@ -78,10 +78,10 @@ impl<'subset, T: Measurable + ?Sized> MeasurableFn<'subset> for BoolFunction<'su
                 let x = T::Subset::full();
                 x
             }
-            (true, false) => T::subset_upcast(&f.true_partition),
+            (true, false) => T::subset_upcast(&self.true_partition),
             (false, true) => {
                 #[with]
-                let x = T::subset_upcast(&f.true_partition).inversion();
+                let x = T::subset_upcast(&self.true_partition).inversion();
                 x
             }
             (false, false) => {
@@ -103,7 +103,7 @@ impl Measurable for bool {
 
 impl PointMeasurable for bool {
     #[with]
-    fn point_subset(&self) -> &'ref Self::Subset<'_> {
+    fn point_subset(&self) -> &'ref Self::Subset<'ref> {
         &BoolSubset {
             includes_true: *self,
             includes_false: !*self,

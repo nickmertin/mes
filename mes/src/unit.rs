@@ -45,9 +45,9 @@ impl<'subset, T: Measurable + ?Sized> MeasurableFn<'subset> for UnitFunction<T> 
 
     #[with]
     fn preimage<'a>(
-        _f: &'a Self,
+        &'a self,
         s: &'a <Self::Codomain as Measurable>::Subset<'a>,
-    ) -> &'ref <Self::Domain as Measurable>::Subset<'a>
+    ) -> &'ref <Self::Domain as Measurable>::Subset<'ref>
     where
         'subset: 'a,
     {
@@ -73,7 +73,7 @@ impl Measurable for () {
 
 impl PointMeasurable for () {
     #[with]
-    fn point_subset(&self) -> &'ref Self::Subset<'_> {
+    fn point_subset(&self) -> &'ref Self::Subset<'ref> {
         #[with]
         let x = Self::Subset::full();
         x
