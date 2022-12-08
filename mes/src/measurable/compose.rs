@@ -1,4 +1,5 @@
 use core::ops::{Mul, MulAssign};
+use type_variance::{variance, Invariant};
 use with_locals::with;
 
 use crate::{
@@ -186,4 +187,29 @@ pub fn compose<
     f: &'a F,
 ) -> CompositeFunction<'a, F, G> {
     CompositeFunction { f, g }
+}
+
+/// An identity function on a measurable space.
+pub struct Identity<T: Measurable + ?Sized>(Invariant<T>);
+
+impl<'subset, T: Measurable + ?Sized> MeasurableFn<'subset> for Identity<T> {
+    type Domain = T;
+
+    type Codomain = T;
+
+    #[with]
+    fn preimage<'a>(
+        &'a self,
+        s: &'a <Self::Codomain as Measurable>::Subset<'a>,
+    ) -> &'ref <Self::Domain as Measurable>::Subset<'ref>
+    where
+        'subset: 'a,
+    {
+        s
+    }
+}
+
+/// Constructs an identity function on a measurable space.
+pub fn identity<T: Measurable + ?Sized>() -> Identity<T> {
+    Identity(variance())
 }
