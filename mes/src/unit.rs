@@ -6,7 +6,6 @@ use with_locals::with;
 
 use crate::{
     real::Real, DiracMeasure, Measurable, MeasurableFn, Measure, PointMeasurable, PointMeasure,
-    SigmaAlgebra,
 };
 
 /// A subset of the unit type.
@@ -17,29 +16,6 @@ pub struct UnitSubset {
 
 /// A function whose codomain is the unit type.
 pub struct UnitFunction<T: ?Sized>(Contravariant<T>);
-
-impl SigmaAlgebra<'_> for UnitSubset {
-    type Space = ();
-
-    #[with]
-    fn empty() -> &'ref Self {
-        &Self { full: false }
-    }
-
-    #[with]
-    fn full() -> &'ref Self {
-        &Self { full: true }
-    }
-
-    fn is_empty(&self) -> bool {
-        !self.full
-    }
-
-    #[with]
-    fn complement(&self) -> &'ref Self {
-        &Self { full: !self.full }
-    }
-}
 
 impl<'subset, T: Measurable + ?Sized> MeasurableFn<'subset> for UnitFunction<T> {
     type Domain = T;
@@ -55,10 +31,10 @@ impl<'subset, T: Measurable + ?Sized> MeasurableFn<'subset> for UnitFunction<T> 
         'subset: 'a,
     {
         if s.full {
-            let x: &'ref _ = T::Subset::full();
+            let x: &'ref _ = T::full_subset();
             x
         } else {
-            let x: &'ref _ = T::Subset::empty();
+            let x: &'ref _ = T::empty_subset();
             x
         }
     }
@@ -70,13 +46,44 @@ impl Measurable for () {
     fn subset_upcast<'a, 'b: 'a>(s: &'a Self::Subset<'b>) -> &'a Self::Subset<'a> {
         s
     }
+
+    #[with]
+    fn empty_subset() -> &'ref Self::Subset<'ref> {
+        &UnitSubset { full: false }
+    }
+
+    #[with]
+    fn full_subset() -> &'ref Self::Subset<'ref> {
+        &UnitSubset { full: true }
+    }
+
+    fn subset_is_empty(s: &Self::Subset<'_>) -> bool {
+        !s.full
+    }
+
+    #[with]
+    fn subset_complement(s: &Self::Subset<'_>) -> &'ref Self::Subset<'ref> {
+        &UnitSubset { full: !s.full }
+    }
+
+    #[with]
+    fn subset_union<'a>(
+        mut subsets: impl Iterator<Item = &'a Self::Subset<'a>> + Clone + 'a,
+    ) -> &'ref Self::Subset<'ref>
+    where
+        Self: 'a,
+    {
+        &UnitSubset {
+            full: subsets.any(|s| s.full),
+        }
+    }
 }
 
 impl PointMeasurable for () {
     #[with]
     fn point_subset(&self) -> &'ref Self::Subset<'ref> {
         #[with]
-        let x = Self::Subset::full();
+        let x = Self::full_subset();
         x
     }
 }

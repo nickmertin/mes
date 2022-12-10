@@ -8,6 +8,7 @@
 extern crate alloc;
 
 pub mod boolean;
+pub mod pair;
 pub mod real;
 pub mod unit;
 // pub mod vector;

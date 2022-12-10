@@ -6,7 +6,6 @@ use with_locals::with;
 
 use crate::{
     real::Real, DiracMeasure, Measurable, MeasurableFn, Measure, PointMeasurable, PointMeasure,
-    SigmaAlgebra,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -20,7 +19,7 @@ pub struct BoolSubset {
 }
 
 /// A measurable function whose codomain is [`bool`].
-pub struct BoolFunction<'a, T: Measurable + ?Sized> {
+pub struct BoolFunction<'a, T: Measurable + ?Sized + 'a> {
     /// The subset of the domain which maps to `true`.
     pub true_primage: T::Subset<'a>,
 }
@@ -33,35 +32,6 @@ impl Not for BoolSubset {
             includes_true: !self.includes_true,
             includes_false: !self.includes_false,
         }
-    }
-}
-
-impl SigmaAlgebra<'_> for BoolSubset {
-    type Space = bool;
-
-    #[with]
-    fn empty() -> &'ref Self {
-        &Self {
-            includes_true: false,
-            includes_false: false,
-        }
-    }
-
-    #[with]
-    fn full() -> &'ref Self {
-        &Self {
-            includes_true: true,
-            includes_false: true,
-        }
-    }
-
-    fn is_empty(&self) -> bool {
-        !self.includes_true && !self.includes_false
-    }
-
-    #[with]
-    fn complement(&self) -> &'ref Self {
-        &!*self
     }
 }
 
@@ -80,16 +50,16 @@ impl<'subset, T: Measurable + ?Sized> MeasurableFn<'subset> for BoolFunction<'su
     {
         match (s.includes_true, s.includes_false) {
             (true, true) => {
-                let x: &'ref _ = T::Subset::full();
+                let x: &'ref _ = T::full_subset();
                 x
             }
             (true, false) => T::subset_upcast(&self.true_primage),
             (false, true) => {
-                let x: &'ref _ = T::subset_upcast(&self.true_primage).complement();
+                let x: &'ref _ = T::subset_complement(T::subset_upcast(&self.true_primage));
                 x
             }
             (false, false) => {
-                let x: &'ref _ = T::Subset::empty();
+                let x: &'ref _ = T::empty_subset();
                 x
             }
         }
@@ -101,6 +71,54 @@ impl Measurable for bool {
 
     fn subset_upcast<'a, 'b: 'a>(s: &'a Self::Subset<'b>) -> &'a Self::Subset<'a> {
         s
+    }
+
+    #[with]
+    fn empty_subset() -> &'ref Self::Subset<'ref> {
+        &BoolSubset {
+            includes_true: false,
+            includes_false: false,
+        }
+    }
+
+    #[with]
+    fn full_subset() -> &'ref Self::Subset<'ref> {
+        &BoolSubset {
+            includes_true: true,
+            includes_false: true,
+        }
+    }
+
+    fn subset_is_empty(s: &Self::Subset<'_>) -> bool {
+        !s.includes_true && !s.includes_false
+    }
+
+    #[with]
+    fn subset_complement(s: &Self::Subset<'_>) -> &'ref Self::Subset<'ref> {
+        &!*s
+    }
+
+    #[with]
+    fn subset_union<'a>(
+        subsets: impl Iterator<Item = &'a Self::Subset<'a>> + Clone + 'a,
+    ) -> &'ref Self::Subset<'ref>
+    where
+        Self: 'a,
+    {
+        let mut result = BoolSubset {
+            includes_true: false,
+            includes_false: false,
+        };
+
+        for s in subsets {
+            result.includes_true |= s.includes_true;
+            result.includes_false |= s.includes_false;
+            if result.includes_true && result.includes_false {
+                break;
+            }
+        }
+
+        &result
     }
 }
 

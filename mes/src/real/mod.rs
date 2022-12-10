@@ -3,7 +3,7 @@
 use num_traits::{float::FloatCore, NumAssign};
 use with_locals::with;
 
-use crate::{Measurable, SigmaAlgebra};
+use crate::Measurable;
 
 pub mod dirac;
 // pub mod gaussian;
@@ -53,11 +53,15 @@ pub trait RealSubset<R: Real> {
     fn contains(&self, value: &R) -> bool;
 }
 
-impl<'a, R: Real> SigmaAlgebra<'a> for dyn RealSubset<R> + 'a {
-    type Space = R;
+impl<R: Real> Measurable for R {
+    type Subset<'a> = dyn RealSubset<R> + 'a;
+
+    fn subset_upcast<'a, 'b: 'a>(s: &'a Self::Subset<'b>) -> &'a Self::Subset<'a> {
+        s
+    }
 
     #[with]
-    fn empty() -> &'ref Self {
+    fn empty_subset() -> &'ref Self::Subset<'ref> {
         struct EmptySubset;
 
         impl<R: Real> RealSubset<R> for EmptySubset {
@@ -78,7 +82,7 @@ impl<'a, R: Real> SigmaAlgebra<'a> for dyn RealSubset<R> + 'a {
     }
 
     #[with]
-    fn full() -> &'ref Self {
+    fn full_subset() -> &'ref Self::Subset<'ref> {
         struct FullSubset(u8);
 
         impl<R: Real> RealSubset<R> for FullSubset {
@@ -98,13 +102,13 @@ impl<'a, R: Real> SigmaAlgebra<'a> for dyn RealSubset<R> + 'a {
         &FullSubset(0)
     }
 
-    fn is_empty(&'a self) -> bool {
+    fn subset_is_empty(s: &Self::Subset<'_>) -> bool {
         // !self.0.left_unbounded && self.0.points.is_empty()
-        self.is_empty()
+        s.is_empty()
     }
 
     #[with]
-    fn complement(&'a self) -> &'ref Self {
+    fn subset_complement(s: &Self::Subset<'_>) -> &'ref Self::Subset<'ref> {
         struct InverseSubset<'x, R>(&'x (dyn RealSubset<R> + 'x));
 
         impl<'x, R: Real> RealSubset<R> for InverseSubset<'x, R> {
@@ -121,15 +125,35 @@ impl<'a, R: Real> SigmaAlgebra<'a> for dyn RealSubset<R> + 'a {
             }
         }
 
-        &InverseSubset(self)
+        &InverseSubset(s)
     }
-}
 
-impl<R: Real> Measurable for R {
-    type Subset<'a> = dyn RealSubset<R> + 'a;
+    #[with]
+    fn subset_union<'a>(
+        subsets: impl Iterator<Item = &'a Self::Subset<'a>> + Clone,
+    ) -> &'ref Self::Subset<'ref>
+    where
+        Self: 'a,
+    {
+        struct UnionSubset<T>(T);
 
-    fn subset_upcast<'a, 'b: 'a>(s: &'a Self::Subset<'b>) -> &'a Self::Subset<'a> {
-        s
+        impl<'x, R: Real, T: Iterator<Item = &'x <R as Measurable>::Subset<'x>> + Clone>
+            RealSubset<R> for UnionSubset<T>
+        {
+            fn is_empty(&self) -> bool {
+                self.0.clone().all(|s| s.is_empty())
+            }
+
+            fn is_full(&self) -> bool {
+                todo!()
+            }
+
+            fn contains(&self, value: &R) -> bool {
+                self.0.clone().all(|s| s.is_empty())
+            }
+        }
+
+        &UnionSubset(subsets)
     }
 }
 
