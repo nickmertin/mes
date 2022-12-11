@@ -7,11 +7,14 @@ use with_locals::with;
 /// Provides limited access to a value of type `T`.
 pub struct Proxy<'a, T: ?Sized>(ProxyState<'a, T>);
 
+pub type AccessorFn<'a, T> = dyn for<'b> Fn(&'b (dyn for<'c> FnMut(&'c T) + 'b));
+// pub type MappingFn<'a, T, U> = dyn for<'b> Fn(&'b )
+
 #[derive(Clone, Copy)]
 enum ProxyState<'a, T: ?Sized> {
     ProxyRef(&'a T),
-    ProxyFn(&'a (dyn Fn(&(dyn FnMut(&T) + '_)) + 'a)),
-    ProxyMap(&'a dyn MapFn<'a, T>, *const ()),
+    ProxyFn(&'a AccessorFn<'a, T>),
+    ProxyMap(&'a (dyn MapFn<T> + 'a), *const ()),
 }
 
 impl<'a, T: ?Sized> Proxy<'a, T> {
@@ -19,7 +22,7 @@ impl<'a, T: ?Sized> Proxy<'a, T> {
         Self(ProxyState::ProxyRef(value))
     }
 
-    pub fn new_fn(accessor: &'a (dyn Fn(&(dyn FnMut(&T) + '_)) + 'a)) -> Self {
+    pub fn new_fn(accessor: &'a AccessorFn<'a, T>) -> Self {
         Self(ProxyState::ProxyFn(accessor))
     }
 
@@ -64,18 +67,26 @@ impl<'a, T: ?Sized> Proxy<'a, T> {
 
     pub fn map<'b, U: ?Sized>(
         &'b self,
-        f: &'b (impl Fn(&T, &mut (dyn FnMut(&U) + '_)) + 'b),
+        f: &'b (impl for<'c> Fn(&'c T, &'c mut (dyn for<'d> FnMut(&'d U) + 'c)) + 'b),
     ) -> Proxy<'b, U> {
         #[repr(transparent)]
-        struct FnWrapper<T: ?Sized, U: ?Sized, F: Fn(&T, &mut (dyn FnMut(&U) + '_)) + ?Sized>(
+        struct FnWrapper<
+            T: ?Sized,
+            U: ?Sized,
+            F: for<'c> Fn(&'c T, &'c mut (dyn for<'d> FnMut(&'d U) + 'c)) + ?Sized,
+        >(
             PhantomData<fn(&T) -> &U>,
             F,
             // Contravariant<T>,
             // Covariant<U>,
         );
 
-        impl<'a, T: ?Sized + 'a, U: ?Sized, F: Fn(&T, &mut (dyn FnMut(&U) + '_))> MapFn<'a, U>
-            for FnWrapper<T, U, F>
+        impl<
+                'a,
+                T: ?Sized + 'a,
+                U: ?Sized,
+                F: for<'c> Fn(&'c T, &'c mut (dyn for<'d> FnMut(&'d U) + 'c)) + ?Sized,
+            > MapFn<U> for FnWrapper<T, U, F>
         {
             #[with]
             unsafe fn eval(&self, target: *const (), f: &mut (dyn FnMut(&U) + '_)) {
@@ -85,7 +96,12 @@ impl<'a, T: ?Sized> Proxy<'a, T> {
             }
         }
 
-        union FnUnion<'a, T: ?Sized, U: ?Sized, F: Fn(&T, &mut (dyn FnMut(&U) + '_)) + ?Sized> {
+        union FnUnion<
+            'a,
+            T: ?Sized,
+            U: ?Sized,
+            F: for<'c> Fn(&'c T, &'c mut (dyn for<'d> FnMut(&'d U) + 'c)) + ?Sized,
+        > {
             f: &'a F,
             wrapper: &'a FnWrapper<T, U, F>,
         }
@@ -97,6 +113,6 @@ impl<'a, T: ?Sized> Proxy<'a, T> {
     }
 }
 
-trait MapFn<'a, T: ?Sized> {
+trait MapFn<T: ?Sized> {
     unsafe fn eval(&self, target: *const (), f: &mut (dyn FnMut(&T) + '_));
 }

@@ -5,8 +5,8 @@ use type_variance::{Contravariant, Invariant};
 use with_locals::with;
 
 use crate::{
-    real::Real, util::Proxy, DiracMeasure, Measurable, MeasurableFn, Measure, PointMeasurable,
-    PointMeasure,
+    real::Real, util::proxy::Proxy, DiracMeasure, Measurable, MeasurableFn, Measure,
+    PointMeasurable, PointMeasure,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -157,41 +157,46 @@ impl<T: Measurable + 'static, U: Measurable + ?Sized + 'static> Measurable for (
         let right_c: &'ref _ = U::subset_complement(right);
         let result: &'ref _ = Self::subset_union(
             [
-                PairSubset {
+                Proxy::new(&PairSubset {
                     left: T::subset_upcast(left),
                     right: U::subset_upcast(right_c),
-                },
-                PairSubset {
+                }),
+                Proxy::new(&PairSubset {
                     left: T::subset_upcast(left_c),
                     right: U::subset_upcast(right),
-                },
-                PairSubset {
+                }),
+                Proxy::new(&PairSubset {
                     left: T::subset_upcast(left_c),
                     right: U::subset_upcast(right_c),
-                },
+                }),
             ]
-            .iter()
-            .map(Proxy::new),
+            .iter(),
         );
         result
     }
 
     #[with]
     fn subset_union<'a>(
-        subsets: impl Iterator<Item = Proxy<'a, Self::Subset<'a>>> + Clone + 'a,
+        subsets: impl Iterator<Item = &'a Proxy<'a, Self::Subset<'a>>> + Clone + 'a,
     ) -> &'ref Self::Subset<'ref>
     where
         Self: 'a,
     {
-        let map_left = &|s: &PairSubset<T, U>, f: &mut (dyn FnMut(&_) + '_)| f(s.left);
+        // fn map_left<'a, 'b, T: Measurable + 'static, U: Measurable + ?Sized>(
+        //     s: &'a PairSubset<'b, T, U>,
+        //     f: &'a mut (dyn for<'c> FnMut(&'c T::Subset<'b>) + 'a),
+        // ) {
+        //     f(s.left);
+        // }
 
-        let left: &'ref _ = T::subset_union(subsets.clone().map(|proxy| proxy.map(map_left)));
-        let right: &'ref _ =
-            U::subset_union(subsets.clone().map(|proxy| proxy.map(&|s, f| f(s.right))));
-        &PairSubset {
-            left: T::subset_upcast(left),
-            right: U::subset_upcast(right),
-        }
+        // let left: &'ref _ = T::subset_union(subsets.clone().map(|proxy|
+        // proxy.map(&map_left))); let right: &'ref _ =
+        //     U::subset_union(subsets.clone().map(|proxy| proxy.map(&|s, f|
+        // f(s.right)))); &PairSubset {
+        //     left: T::subset_upcast(left),
+        //     right: U::subset_upcast(right),
+        // }
+        todo!()
     }
 }
 
