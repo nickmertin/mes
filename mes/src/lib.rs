@@ -7,15 +7,16 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
+mod measurable;
+
+pub use measurable::*;
+
 pub mod boolean;
 pub mod pair;
 pub mod real;
 pub mod unit;
+pub mod util;
 // pub mod vector;
-
-mod measurable;
-
-pub use measurable::*;
 
 // #[cfg(feature = "derive")]
 // #[doc(hidden)]

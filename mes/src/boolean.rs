@@ -5,7 +5,8 @@ use derive_more::{Add, AddAssign, Mul, MulAssign};
 use with_locals::with;
 
 use crate::{
-    real::Real, DiracMeasure, Measurable, MeasurableFn, Measure, PointMeasurable, PointMeasure,
+    real::Real, util::Proxy, DiracMeasure, Measurable, MeasurableFn, Measure, PointMeasurable,
+    PointMeasure,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -100,7 +101,7 @@ impl Measurable for bool {
 
     #[with]
     fn subset_union<'a>(
-        subsets: impl Iterator<Item = &'a Self::Subset<'a>> + Clone + 'a,
+        subsets: impl Iterator<Item = Proxy<'a, Self::Subset<'a>>> + Clone + 'a,
     ) -> &'ref Self::Subset<'ref>
     where
         Self: 'a,
@@ -110,9 +111,13 @@ impl Measurable for bool {
             includes_false: false,
         };
 
-        for s in subsets {
-            result.includes_true |= s.includes_true;
-            result.includes_false |= s.includes_false;
+        for proxy in subsets {
+            {
+                let s: &'ref _ = proxy.access();
+                result.includes_true |= s.includes_true;
+                result.includes_false |= s.includes_false;
+            }
+
             if result.includes_true && result.includes_false {
                 break;
             }

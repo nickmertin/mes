@@ -3,7 +3,7 @@
 use num_traits::{float::FloatCore, NumAssign};
 use with_locals::with;
 
-use crate::Measurable;
+use crate::{util::Proxy, Measurable};
 
 pub mod dirac;
 // pub mod gaussian;
@@ -130,18 +130,20 @@ impl<R: Real> Measurable for R {
 
     #[with]
     fn subset_union<'a>(
-        subsets: impl Iterator<Item = &'a Self::Subset<'a>> + Clone,
+        subsets: impl Iterator<Item = Proxy<'a, Self::Subset<'a>>> + Clone,
     ) -> &'ref Self::Subset<'ref>
     where
         Self: 'a,
     {
         struct UnionSubset<T>(T);
 
-        impl<'x, R: Real, T: Iterator<Item = &'x <R as Measurable>::Subset<'x>> + Clone>
+        impl<'x, R: Real, T: Iterator<Item = Proxy<'x, <R as Measurable>::Subset<'x>>> + Clone>
             RealSubset<R> for UnionSubset<T>
         {
             fn is_empty(&self) -> bool {
-                self.0.clone().all(|s| s.is_empty())
+                self.0
+                    .clone()
+                    .all(|proxy| proxy.with_access(RealSubset::is_empty))
             }
 
             fn is_full(&self) -> bool {
@@ -149,7 +151,9 @@ impl<R: Real> Measurable for R {
             }
 
             fn contains(&self, value: &R) -> bool {
-                self.0.clone().all(|s| s.is_empty())
+                self.0
+                    .clone()
+                    .any(|proxy| proxy.with_access(|s| s.contains(value)))
             }
         }
 

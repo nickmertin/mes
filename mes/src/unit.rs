@@ -5,7 +5,8 @@ use type_variance::Contravariant;
 use with_locals::with;
 
 use crate::{
-    real::Real, DiracMeasure, Measurable, MeasurableFn, Measure, PointMeasurable, PointMeasure,
+    real::Real, util::Proxy, DiracMeasure, Measurable, MeasurableFn, Measure, PointMeasurable,
+    PointMeasure,
 };
 
 /// A subset of the unit type.
@@ -68,13 +69,13 @@ impl Measurable for () {
 
     #[with]
     fn subset_union<'a>(
-        mut subsets: impl Iterator<Item = &'a Self::Subset<'a>> + Clone + 'a,
+        mut subsets: impl Iterator<Item = Proxy<'a, Self::Subset<'a>>> + Clone + 'a,
     ) -> &'ref Self::Subset<'ref>
     where
         Self: 'a,
     {
         &UnitSubset {
-            full: subsets.any(|s| s.full),
+            full: subsets.any(|proxy| proxy.with_access(|s| s.full)),
         }
     }
 }

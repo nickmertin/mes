@@ -6,6 +6,8 @@ mod measure;
 pub use compose::*;
 pub use measure::*;
 
+use crate::util::Proxy;
+
 /// A measurable space.
 pub trait Measurable {
     /// The type representing measurable subsets of [`Self`].
@@ -108,7 +110,7 @@ pub trait Measurable {
     /// }
     /// ```
     fn subset_union<'a>(
-        subsets: impl Iterator<Item = &'a Self::Subset<'a>> + Clone + 'a,
+        subsets: impl Iterator<Item = Proxy<'a, Self::Subset<'a>>> + Clone + 'a,
     ) -> &'ref Self::Subset<'ref>
     where
         Self: 'a;

@@ -5,7 +5,8 @@ use type_variance::{Contravariant, Invariant};
 use with_locals::with;
 
 use crate::{
-    real::Real, DiracMeasure, Measurable, MeasurableFn, Measure, PointMeasurable, PointMeasure,
+    real::Real, util::Proxy, DiracMeasure, Measurable, MeasurableFn, Measure, PointMeasurable,
+    PointMeasure,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -169,20 +170,24 @@ impl<T: Measurable + 'static, U: Measurable + ?Sized + 'static> Measurable for (
                     right: U::subset_upcast(right_c),
                 },
             ]
-            .iter(),
+            .iter()
+            .map(Proxy::new),
         );
         result
     }
 
     #[with]
     fn subset_union<'a>(
-        subsets: impl Iterator<Item = &'a Self::Subset<'a>> + Clone + 'a,
+        subsets: impl Iterator<Item = Proxy<'a, Self::Subset<'a>>> + Clone + 'a,
     ) -> &'ref Self::Subset<'ref>
     where
         Self: 'a,
     {
-        let left: &'ref _ = T::subset_union(subsets.clone().map(|s| s.left));
-        let right: &'ref _ = U::subset_union(subsets.map(|s| s.right));
+        let map_left = &|s: &PairSubset<T, U>, f: &mut (dyn FnMut(&_) + '_)| f(s.left);
+
+        let left: &'ref _ = T::subset_union(subsets.clone().map(|proxy| proxy.map(map_left)));
+        let right: &'ref _ =
+            U::subset_union(subsets.clone().map(|proxy| proxy.map(&|s, f| f(s.right))));
         &PairSubset {
             left: T::subset_upcast(left),
             right: U::subset_upcast(right),
