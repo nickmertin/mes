@@ -5,24 +5,27 @@ use core::{
 
 use with_locals::with;
 
-use super::{LGType, LGTypeCopy};
+use super::{BasicLGType, LGType};
 
 pub trait LocalIterator {
-    type Item<'a>: ?Sized + 'a
-    where
-        Self: 'a;
+    type Item: LGType;
 
     // #[with]
     // fn next(&mut self) -> Option<&'ref Self::Item<'ref>>;
 
-    fn next(&mut self) -> Option<&'_ Self::Item<'_>>;
+    fn next(&mut self) -> Option<&'_ <Self::Item as LGType>::Type<'_>>;
 
-    fn map<U: LGTypeCopy, F: for<'a> Fn(&'a Self::Item<'a>) -> U::Type<'a>>(
+    fn map<
+        'data,
+        U: LGType + 'data,
+        F: for<'a> Fn(&'a <Self::Item as LGType>::Type<'a>) -> U::Type<'a>,
+    >(
         self,
         f: F,
-    ) -> Map<Self, U, F>
+    ) -> Map<'data, Self, U, F>
     where
         Self: Sized,
+        for<'a> U::Type<'a>: Sized + Copy,
     {
         Map {
             base: self,
@@ -32,30 +35,44 @@ pub trait LocalIterator {
     }
 }
 
-pub struct Map<I: LocalIterator, U: LGTypeCopy, F: for<'a> Fn(&'a I::Item<'a>) -> U::Type<'a>> {
+pub struct Map<
+    'data,
+    I: LocalIterator,
+    U: LGType + 'data,
+    F: for<'a> Fn(&'a <I::Item as LGType>::Type<'a>) -> U::Type<'a>,
+> where
+    for<'a> U::Type<'a>: Sized + Copy,
+{
     base: I,
     f: F,
-    value: MaybeUninit<U::Type<'static>>,
+    value: MaybeUninit<U::Type<'data>>,
 }
 
-impl<I: LocalIterator, U: LGTypeCopy, F: for<'a> Fn(&'a I::Item<'a>) -> U::Type<'a>> LocalIterator
-    for Map<I, U, F>
+impl<
+        'data,
+        I: LocalIterator,
+        U: LGType + 'data,
+        F: for<'a> Fn(&'a <I::Item as LGType>::Type<'a>) -> U::Type<'a>,
+    > LocalIterator for Map<'data, I, U, F>
+where
+    for<'a> U::Type<'a>: Sized + Copy,
 {
-    type Item<'a> = U::Type<'a>
-    where
-        Self: 'a;
+    type Item = U;
 
     // #[with]
     // fn next(&mut self) -> Option<&'ref Self::Item<'ref>> {}
 
-    fn next<'a>(&'a mut self) -> Option<&'a Self::Item<'a>> {
-        union RefUnion<'a, U: LGTypeCopy> {
-            static_ref: &'a mut MaybeUninit<U::Type<'static>>,
+    fn next<'a>(&'a mut self) -> Option<&'a <Self::Item as LGType>::Type<'a>> {
+        union RefUnion<'a, 'data: 'a, U: LGType + 'data>
+        where
+            for<'b> <U as LGType>::Type<'b>: Sized,
+        {
+            static_ref: &'a mut MaybeUninit<U::Type<'data>>,
             local_ref: &'a mut MaybeUninit<U::Type<'a>>,
         }
 
         let value = unsafe {
-            RefUnion::<'a, U> {
+            RefUnion::<'a, 'data, U> {
                 static_ref: &mut self.value,
             }
             .local_ref
@@ -67,34 +84,37 @@ impl<I: LocalIterator, U: LGTypeCopy, F: for<'a> Fn(&'a I::Item<'a>) -> U::Type<
     }
 }
 
-pub struct RefMap<I: LocalIterator, U: LGType, F: for<'a> Fn(&'a I::Item<'a>) -> &'a U::Type<'a>> {
+pub struct RefMap<
+    I: LocalIterator,
+    U: LGType,
+    F: for<'a> Fn(&'a <I::Item as LGType>::Type<'a>) -> &'a U::Type<'a>,
+> {
     iterator: I,
     f: F,
     _phantom: PhantomData<U>,
 }
 
-impl<I: LocalIterator, U: LGType, F: for<'a> Fn(&'a I::Item<'a>) -> &'a U::Type<'a>> LocalIterator
-    for RefMap<I, U, F>
+impl<
+        I: LocalIterator,
+        U: LGType,
+        F: for<'a> Fn(&'a <I::Item as LGType>::Type<'a>) -> &'a U::Type<'a>,
+    > LocalIterator for RefMap<I, U, F>
 {
-    type Item<'a> = U::Type<'a>
-    where
-        Self: 'a;
+    type Item = U;
 
     // #[with]
     // fn next(&mut self) -> Option<&'ref Self::Item<'ref>> {}
 
-    fn next(&mut self) -> Option<&'_ Self::Item<'_>> {
+    fn next(&mut self) -> Option<&'_ <Self::Item as LGType>::Type<'_>> {
         let r = self.iterator.next()?;
         Some((self.f)(r))
     }
 }
 
 impl<I: Iterator> LocalIterator for I {
-    type Item<'a> = I::Item
-    where
-        Self: 'a;
+    type Item = BasicLGType<I::Item>;
 
-    fn next(&mut self) -> Option<&'_ Self::Item<'_>> {
+    fn next(&mut self) -> Option<&'_ <Self::Item as LGType>::Type<'_>> {
         let value = Iterator::next(self)?;
         todo!()
     }

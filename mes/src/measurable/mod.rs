@@ -6,7 +6,7 @@ mod measure;
 pub use compose::*;
 pub use measure::*;
 
-use crate::util::proxy::Proxy;
+use crate::util::{iter::LocalIterator, proxy::Proxy};
 
 /// A measurable space.
 pub trait Measurable {
