@@ -37,10 +37,10 @@ pub trait LGType {
 //     type Type<'a> = <Self as LGTypeSized>::Type<'a>;
 // }
 
-pub struct BasicLGType<T: ?Sized>(PhantomData<T>);
+pub struct BasicLGType<'scope, T: ?Sized + 'scope>(PhantomData<&'scope T>);
 
-impl<T: ?Sized> LGType for BasicLGType<T> {
-    type Type<'a> = T where T: 'a;
+impl<'scope, T: ?Sized + 'scope> LGType for BasicLGType<'scope, T> {
+    type Type<'a> = T where Self: 'a;
 }
 
 // impl<T: 'static> LGTypeSized for BasicLGType<T> {

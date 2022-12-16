@@ -3,7 +3,7 @@
 use num_traits::{float::FloatCore, NumAssign};
 use with_locals::with;
 
-use crate::{util::proxy::Proxy, Measurable};
+use crate::{all, any, util::iter::LocalIterator, Measurable, SubsetProxy};
 
 pub mod dirac;
 // pub mod gaussian;
@@ -25,7 +25,7 @@ macro_rules! impl_real {
     ($type:ty) => {
         impl Real for $type {
             fn normalize(nums: &mut [Self]) -> Option<()> {
-                let sum: Self = nums.iter().map(|x| *x).sum();
+                let sum: Self = Iterator::map(nums.iter(), |x| *x).sum();
                 let factor = sum.recip();
                 if !factor.is_finite() {
                     return None;
@@ -130,23 +130,18 @@ impl<R: Real> Measurable for R {
 
     #[with]
     fn subset_union<'a>(
-        subsets: impl Iterator<Item = &'a Proxy<'a, Self::Subset<'a>>> + Clone,
+        subsets: impl LocalIterator<Item = SubsetProxy<'a, Self>> + Clone,
     ) -> &'ref Self::Subset<'ref>
     where
         Self: 'a,
     {
         struct UnionSubset<T>(T);
 
-        impl<
-                'x,
-                R: Real,
-                T: Iterator<Item = &'x Proxy<'x, <R as Measurable>::Subset<'x>>> + Clone,
-            > RealSubset<R> for UnionSubset<T>
+        impl<'x, R: Real, T: LocalIterator<Item = SubsetProxy<'x, R>> + Clone> RealSubset<R>
+            for UnionSubset<T>
         {
             fn is_empty(&self) -> bool {
-                self.0
-                    .clone()
-                    .all(|proxy| proxy.with_access(RealSubset::is_empty))
+                all!(proxy in self.0.clone() => proxy.with_access(RealSubset::is_empty))
             }
 
             fn is_full(&self) -> bool {
@@ -154,9 +149,7 @@ impl<R: Real> Measurable for R {
             }
 
             fn contains(&self, value: &R) -> bool {
-                self.0
-                    .clone()
-                    .any(|proxy| proxy.with_access(|s| s.contains(value)))
+                any!(proxy in self.0.clone() => proxy.with_access(|s| s.contains(value)))
             }
         }
 

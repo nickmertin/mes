@@ -3,19 +3,33 @@
 use core::marker::PhantomData;
 use with_locals::with;
 
-#[derive(Clone, Copy)]
 /// Provides limited access to a value of type `T`.
 pub struct Proxy<'a, T: ?Sized>(ProxyState<'a, T>);
+
+impl<'a, T: ?Sized> Clone for Proxy<'a, T> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<'a, T: ?Sized> Copy for Proxy<'a, T> {}
 
 pub type AccessorFn<'a, T> = dyn for<'b> Fn(&'b (dyn for<'c> FnMut(&'c T) + 'b));
 // pub type MappingFn<'a, T, U> = dyn for<'b> Fn(&'b )
 
-#[derive(Clone, Copy)]
 enum ProxyState<'a, T: ?Sized> {
     ProxyRef(&'a T),
     ProxyFn(&'a AccessorFn<'a, T>),
     ProxyMap(&'a (dyn MapFn<T> + 'a), *const ()),
 }
+
+impl<'a, T: ?Sized> Clone for ProxyState<'a, T> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<'a, T: ?Sized> Copy for ProxyState<'a, T> {}
 
 impl<'a, T: ?Sized> Proxy<'a, T> {
     pub fn new(value: &'a T) -> Self {
@@ -116,3 +130,12 @@ impl<'a, T: ?Sized> Proxy<'a, T> {
 trait MapFn<T: ?Sized> {
     unsafe fn eval(&self, target: *const (), f: &mut (dyn FnMut(&T) + '_));
 }
+
+// pub struct ProxyAsLGType<'context, T: ?Sized +
+// 'context>(PhantomData<&'context T>);
+
+// impl<'context, T> LGType for ProxyAsLGType<'context, T> {
+//     type Type<'a> = Proxy<'a, T>
+//     where
+//         Self: 'a;
+// }

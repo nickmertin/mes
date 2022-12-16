@@ -1,3 +1,4 @@
+use core::marker::PhantomData;
 use with_locals::with;
 
 mod compose;
@@ -6,7 +7,7 @@ mod measure;
 pub use compose::*;
 pub use measure::*;
 
-use crate::util::{iter::LocalIterator, proxy::Proxy};
+use crate::util::{iter::LocalIterator, proxy::Proxy, LGType};
 
 /// A measurable space.
 pub trait Measurable {
@@ -110,7 +111,7 @@ pub trait Measurable {
     /// }
     /// ```
     fn subset_union<'a>(
-        subsets: impl Iterator<Item = &'a Proxy<'a, Self::Subset<'a>>> + Clone + 'a,
+        subsets: impl LocalIterator<Item = SubsetProxy<'a, Self>> + Clone + 'a,
     ) -> &'ref Self::Subset<'ref>
     where
         Self: 'a;
@@ -196,4 +197,14 @@ pub trait MeasurableFn<'subset> {
     ) -> &'ref <Self::Domain as Measurable>::Subset<'ref>
     where
         'subset: 'a;
+}
+
+pub struct SubsetProxy<'context, T: Measurable + ?Sized + 'context>(
+    PhantomData<&'context T::Subset<'context>>,
+);
+
+impl<'context, T: Measurable + ?Sized + 'context> LGType for SubsetProxy<'context, T> {
+    type Type<'a> = Proxy<'a, T::Subset<'a>>
+    where
+        Self: 'a;
 }

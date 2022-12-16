@@ -5,11 +5,15 @@ use type_variance::{Contravariant, Invariant};
 use with_locals::with;
 
 use crate::{
-    real::Real, util::proxy::Proxy, DiracMeasure, Measurable, MeasurableFn, Measure,
-    PointMeasurable, PointMeasure,
+    real::Real,
+    util::{
+        iter::{LocalIterator, LocalIteratorExt, Map, SliceExt},
+        proxy::Proxy,
+    },
+    DiracMeasure, Measurable, MeasurableFn, Measure, PointMeasurable, PointMeasure, SubsetProxy,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 /// A subset of [`bool`].
 pub struct PairSubset<'a, T: Measurable + 'a, U: Measurable + ?Sized + 'a> {
     /// The subset of `T`.
@@ -18,6 +22,14 @@ pub struct PairSubset<'a, T: Measurable + 'a, U: Measurable + ?Sized + 'a> {
     /// The subset of `U`.
     pub right: &'a U::Subset<'a>,
 }
+
+impl<'a, T: Measurable + 'a, U: Measurable + ?Sized + 'a> Clone for PairSubset<'a, T, U> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<'a, T: Measurable + 'a, U: Measurable + ?Sized + 'a> Copy for PairSubset<'a, T, U> {}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// The left projection function from `(T, U)` to `T`.
@@ -170,33 +182,34 @@ impl<T: Measurable + 'static, U: Measurable + ?Sized + 'static> Measurable for (
                     right: U::subset_upcast(right_c),
                 }),
             ]
-            .iter(),
+            .local_iter()
+            .map(|proxy| *proxy),
         );
         result
     }
 
     #[with]
     fn subset_union<'a>(
-        subsets: impl Iterator<Item = &'a Proxy<'a, Self::Subset<'a>>> + Clone + 'a,
+        subsets: impl LocalIterator<Item = SubsetProxy<'a, Self>> + Clone + 'a,
     ) -> &'ref Self::Subset<'ref>
     where
         Self: 'a,
     {
-        // fn map_left<'a, 'b, T: Measurable + 'static, U: Measurable + ?Sized>(
-        //     s: &'a PairSubset<'b, T, U>,
-        //     f: &'a mut (dyn for<'c> FnMut(&'c T::Subset<'b>) + 'a),
-        // ) {
-        //     f(s.left);
-        // }
+        fn map_left<'a, 'b, T: Measurable + 'static, U: Measurable + ?Sized>(
+            s: &'a PairSubset<'b, T, U>,
+            f: &'a mut (dyn for<'c> FnMut(&'c T::Subset<'b>) + 'a),
+        ) {
+            f(s.left);
+        }
 
-        // let left: &'ref _ = T::subset_union(subsets.clone().map(|proxy|
-        // proxy.map(&map_left))); let right: &'ref _ =
-        //     U::subset_union(subsets.clone().map(|proxy| proxy.map(&|s, f|
-        // f(s.right)))); &PairSubset {
-        //     left: T::subset_upcast(left),
-        //     right: U::subset_upcast(right),
-        // }
-        todo!()
+        let left: &'ref _ = T::subset_union(subsets.clone().map(|proxy| proxy.map(&map_left)));
+        let right: &'ref _ =
+            U::subset_union(subsets.clone().map(|proxy| proxy.map(&|s, f| f(s.right))));
+        &PairSubset {
+            left: T::subset_upcast(left),
+            right: U::subset_upcast(right),
+        }
+        // todo!()
     }
 }
 
