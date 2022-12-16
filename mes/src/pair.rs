@@ -5,10 +5,12 @@ use type_variance::{Contravariant, Invariant};
 use with_locals::with;
 
 use crate::{
+    map,
     real::Real,
     util::{
         iter::{LocalIterator, LocalIteratorExt, Map, SliceExt},
         proxy::Proxy,
+        BasicLGType, LGType,
     },
     DiracMeasure, Measurable, MeasurableFn, Measure, PointMeasurable, PointMeasure, SubsetProxy,
 };
@@ -167,25 +169,45 @@ impl<T: Measurable + 'static, U: Measurable + ?Sized + 'static> Measurable for (
         let PairSubset { left, right } = *s;
         let left_c: &'ref _ = T::subset_complement(left);
         let right_c: &'ref _ = U::subset_complement(right);
-        let result: &'ref _ = Self::subset_union(
-            [
-                Proxy::new(&PairSubset {
+        // let subsets = [
+        //     PairSubset::<T, U> {
+        //         left: T::subset_upcast(left),
+        //         right: U::subset_upcast(right_c),
+        //     },
+        //     PairSubset {
+        //         left: T::subset_upcast(left_c),
+        //         right: U::subset_upcast(right),
+        //     },
+        //     PairSubset {
+        //         left: T::subset_upcast(left_c),
+        //         right: U::subset_upcast(right_c),
+        //     },
+        // ]
+        // .local_iter()
+        // .map::<SubsetProxy<'_, Self>, _>(
+        //     |s| -> <SubsetProxy<'_, Self> as LGType>::Type<'_> { Proxy::new(s) },
+        // );
+        // let result: &'ref _ = Self::subset_union(subsets);
+        // result
+        let subsets = map! {
+            for<'x; T: Measurable + 'static, U: Measurable + ?Sized + 'static>
+            [BasicLGType<'x, PairSubset<'x, T, U>> => SubsetProxy<'x, Self>]
+            s in [
+                PairSubset::<T, U> {
                     left: T::subset_upcast(left),
                     right: U::subset_upcast(right_c),
-                }),
-                Proxy::new(&PairSubset {
+                },
+                PairSubset {
                     left: T::subset_upcast(left_c),
                     right: U::subset_upcast(right),
-                }),
-                Proxy::new(&PairSubset {
+                },
+                PairSubset {
                     left: T::subset_upcast(left_c),
                     right: U::subset_upcast(right_c),
-                }),
-            ]
-            .local_iter()
-            .map(|proxy| *proxy),
-        );
-        result
+                },
+            ].local_iter() => todo!()
+        };
+        todo!()
     }
 
     #[with]
@@ -209,15 +231,21 @@ impl<T: Measurable + 'static, U: Measurable + ?Sized + 'static> Measurable for (
         //     f(s.right);
         // }
 
-        let left: &'ref _ =
-            T::subset_union(subsets.clone().map(|proxy| proxy.map(&|s, f| f(s.left))));
-        let right: &'ref _ =
-            U::subset_union(subsets.clone().map(|proxy| proxy.map(&|s, f| f(s.right))));
-        &PairSubset {
-            left: T::subset_upcast(left),
-            right: U::subset_upcast(right),
-        }
-        // todo!()
+        // let mapped = subsets
+        //     .clone()
+        //     .map(|proxy: &Proxy<'_, Self::Subset<'_>>| proxy.map(&|s, f| f(s.left)));
+
+        // let left: &'ref _ = T::subset_union(mapped);
+
+        // let right: &'ref _ =
+        //     U::subset_union(subsets.clone().map(|proxy| proxy.map(&|s, f|
+        // f(s.right))));
+
+        // &PairSubset {
+        //     left: T::subset_upcast(left),
+        //     right: U::subset_upcast(right),
+        // }
+        todo!()
     }
 }
 

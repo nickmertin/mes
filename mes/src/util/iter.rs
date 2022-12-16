@@ -80,12 +80,84 @@ macro_rules! all {
     ($x:pat in $i:expr => $y:expr) => {!$crate::any!($x in $i => !$y)};
 }
 
-// #[macro_export]
-// macro_rules! map {
-//     ($x:pat in $i:expr => $y:expr) => {
-//         $crate::util::iter::Map::new()
-//     };
-// }
+#[macro_export]
+macro_rules! map {
+    {
+        $(for<
+            $($lt:lifetime $(: $base:lifetime $(+ $bases:lifetime)*)?),*;
+            $($g:ident $(: $($tbases:tt)*)?),*
+            >)?
+        [$t:ty => $u:ty]
+        $x:pat in $i:expr => $y:expr
+    } => {{
+        struct Map<$($($lt $(: $base $(+ $bases)*)?,)*)? 'data, $($($g $(: $($tbases)*)?,)*)? I: $crate::util::iter::LocalIterator<Item = $t>>
+        where
+            <$u as $crate::util::LGType>::Type<'data>: Copy,
+        {
+            base: I,
+            value: ::core::mem::MaybeUninit<<$u as $crate::util::LGType>::Type<'data>>,
+        }
+
+        impl<$($($lt $(: $base $(+ $bases)*)?,)*)? 'data, $($($g $(: $($tbases)*)?,)*)? I: $crate::util::iter::LocalIterator<Item = $t>> Clone for Map<$($($lt,)*)? 'data, $($($g,)*)? I>
+        where
+            I: Clone,
+            <$u as $crate::util::LGType>::Type<'data>: Copy,
+        {
+            fn clone(&self) -> Self {
+                Self {
+                    base: self.base.clone(),
+                    value: self.value,
+                }
+            }
+        }
+
+        impl<$($($lt $(: $base $(+ $bases)*)?,)*)? 'data, $($($g $(: $($tbases)*)?,)*)? I: $crate::util::iter::LocalIterator<Item = $t>> Copy for Map<$($($lt,)*)? 'data, $($($g,)*)? I>
+        where
+            I: Copy,
+            <$u as $crate::util::LGType>::Type<'data>: Copy,
+        {
+        }
+
+        impl<$($($lt $(: $base $(+ $bases)*)?,)*)? 'data, $($($g $(: $($tbases)*)?,)*)? I: $crate::util::iter::LocalIterator<Item = $t>>
+            $crate::util::iter::LocalIterator for Map<$($($lt,)*)? 'data, $($($g,)*)? I>
+        where
+            <$u as $crate::util::LGType>::Type<'data>: Copy,
+        {
+            type Item = $u;
+
+            fn next<'a>(
+                &'a mut self,
+            ) -> ::core::option::Option<&'a <Self::Item as $crate::util::LGType>::Type<'a>>
+            {
+                union RefUnion<'a, 'data: 'a>
+                where
+                    for<'b> <$u as $crate::util::LGType>::Type<'b>: Sized,
+                {
+                    static_ref:
+                        &'a mut ::core::mem::MaybeUninit<<$u as $crate::util::LGType>::Type<'data>>,
+                    local_ref:
+                        &'a mut ::core::mem::MaybeUninit<<$u as $crate::util::LGType>::Type<'a>>,
+                }
+
+                let value = unsafe {
+                    RefUnion::<'a, 'data> {
+                        static_ref: &mut self.value,
+                    }
+                    .local_ref
+                };
+
+                let $x = self.base.next()?;
+                let new_value = $y;
+                Some(value.write(new_value))
+            }
+        }
+
+        Map {
+            base: $i,
+            value: ::core::mem::MaybeUninit::uninit(),
+        }
+    }};
+}
 
 pub struct Map<
     'data,
