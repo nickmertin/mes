@@ -195,14 +195,22 @@ impl<T: Measurable + 'static, U: Measurable + ?Sized + 'static> Measurable for (
     where
         Self: 'a,
     {
-        fn map_left<'a, 'b, T: Measurable + 'static, U: Measurable + ?Sized>(
-            s: &'a PairSubset<'b, T, U>,
-            f: &'a mut (dyn for<'c> FnMut(&'c T::Subset<'b>) + 'a),
-        ) {
-            f(s.left);
-        }
+        // fn map_left<'a, 'b, T: Measurable + 'static, U: Measurable + ?Sized>(
+        //     s: &'a PairSubset<'b, T, U>,
+        //     f: &'a mut (dyn for<'c> FnMut(&'c T::Subset<'b>) + 'a),
+        // ) {
+        //     f(s.left);
+        // }
 
-        let left: &'ref _ = T::subset_union(subsets.clone().map(|proxy| proxy.map(&map_left)));
+        // fn map_right<'a, 'b, T: Measurable + 'static, U: Measurable + ?Sized>(
+        //     s: &'a PairSubset<'b, T, U>,
+        //     f: &'a mut (dyn for<'c> FnMut(&'c U::Subset<'b>) + 'a),
+        // ) {
+        //     f(s.right);
+        // }
+
+        let left: &'ref _ =
+            T::subset_union(subsets.clone().map(|proxy| proxy.map(&|s, f| f(s.left))));
         let right: &'ref _ =
             U::subset_union(subsets.clone().map(|proxy| proxy.map(&|s, f| f(s.right))));
         &PairSubset {
